@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pharmacon
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "3001"
+      - key: DATA_DIR
+        value: /app/data
+      - key: JWT_SECRET
+        generateValue: true
+    disk:
+      name: pharmacon-data
+      mountPath: /app/data
+      sizeGB: 1

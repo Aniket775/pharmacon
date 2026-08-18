@@ -1,0 +1,14 @@
+services:
+  pharmacon:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATA_DIR: /app/data
+      JWT_SECRET: ${JWT_SECRET:?Set a long, unique JWT_SECRET before deploying}
+    volumes:
+      - pharmacon-data:/app/data
+
+volumes:
+  pharmacon-data:
