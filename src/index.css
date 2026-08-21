@@ -190,3 +190,31 @@
 .animate-in-delay-3 {
   animation: slideUp 0.3s ease-out 0.15s both;
 }
+
+/* ─── Editable Section Styles ────────────────────────────────────────── */
+
+.edit-pencil-btn {
+  @apply p-1.5 rounded-md text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-all cursor-pointer;
+}
+
+.edit-action-btn {
+  @apply p-1.5 rounded-md transition-colors cursor-pointer;
+}
+
+.editable-input {
+  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white
+         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
+         placeholder:text-slate-300 transition-all;
+}
+
+.editable-textarea {
+  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white resize-y
+         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
+         placeholder:text-slate-300 transition-all;
+}
+
+.editable-select {
+  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white
+         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
+         transition-all;
+}

@@ -11,12 +11,32 @@ import versionRoutes from './routes/versions.js';
 import deliverableRoutes from './routes/deliverables.js';
 import teamRoutes from './routes/team.js';
 import workflowRoutes from './routes/workflow.js';
+import contentRoutes from './routes/content.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const preferredPort = parseInt(process.env.PORT || '4174', 10);
+
+const getAvailablePort = (port: number): number => {
+  let candidate = port;
+  while (true) {
+    try {
+      const testServer = app.listen(candidate);
+      testServer.close();
+      return candidate;
+    } catch (error: any) {
+      if (error?.code === 'EADDRINUSE') {
+        candidate += 1;
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
+const PORT = getAvailablePort(preferredPort);
 
 // Ensure uploads directory exists
 const uploadsDir = join(process.env.DATA_DIR || __dirname, 'uploads');
@@ -26,7 +46,7 @@ if (!existsSync(uploadsDir)) {
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:4174', 'http://localhost:5173'],
   credentials: true,
 }));
 app.use(express.json());
@@ -46,6 +66,7 @@ app.use('/api/versions', versionRoutes);
 app.use('/api/deliverables', deliverableRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api', workflowRoutes);
+app.use('/api/content', contentRoutes);
 
 // Production hosting: serve the built React app from the same process as the API.
 const clientDist = join(__dirname, '..', 'dist');

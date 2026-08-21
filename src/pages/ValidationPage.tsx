@@ -1,72 +1,81 @@
-import { CheckCircle, Clock, AlertTriangle, Shield, ClipboardCheck, Users, BarChart3 } from 'lucide-react';
-
-const functionalTests = [
-  { test: 'Login works', status: 'planned' },
-  { test: 'Prescription upload works', status: 'prototype' },
-  { test: 'Extraction works', status: 'prototype' },
-  { test: 'Low-confidence fields are flagged', status: 'prototype' },
-  { test: 'Confirmation works', status: 'prototype' },
-  { test: 'Inventory state changes', status: 'planned' },
-  { test: 'Patient dashboard updates', status: 'prototype' },
-  { test: 'Audit event is created', status: 'prototype' },
-];
-
-const userTestingQuestions = [
-  'Was the workflow understandable?',
-  'Was the extracted information easy to verify?',
-  'Was the confirmation step clear?',
-  'Did the workflow reduce manual effort compared to full manual entry?',
-  'Was the patient dashboard understandable?',
-  'Were low-confidence indicators helpful?',
-];
-
-const evaluationCriteria = [
-  { criterion: 'Calibration learning curve', desc: 'Compare results after one, two and three calibration sheets rather than assuming a single sheet is sufficient.' },
-  { criterion: 'Adapted vs. generic recognition', desc: 'Measure doctor-adapted recognition against a generic baseline using held-out paper scans from each participating writer.' },
-  { criterion: 'Workflow completion', desc: 'Can users complete the full prescription digitisation workflow?' },
-  { criterion: 'Correction time', desc: 'How long does it take to correct flagged fields?' },
-  { criterion: 'Extraction accuracy', desc: 'How accurately does the system extract prescription fields?' },
-  { criterion: 'Matching accuracy', desc: 'How accurately does the system match to formulary items?' },
-  { criterion: 'Task completion', desc: 'Can all user roles complete their assigned tasks?' },
-  { criterion: 'Correct state transitions', desc: 'Do all system state changes (inventory, audit, patient records) occur correctly?' },
-];
+import { Shield, Users, BarChart3, ClipboardCheck, Loader2 } from 'lucide-react';
+import { useEditableContent } from '../hooks/useEditableContent';
+import EditableSection from '../components/EditableSection';
 
 export default function ValidationPage() {
+  const { sections, loading, updateSection } = useEditableContent('validation');
+  const recognitionStudy = sections.recognition_study || [];
+  const functionalTests = sections.functional_tests || [];
+  const userTestingQuestions = sections.user_testing_questions || [];
+  const evaluationCriteria = sections.evaluation_criteria || [];
+
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <h1 className="page-title">Validation</h1>
       <p className="page-subtitle">Planned testing and validation approach for the Pharmacon system.</p>
 
       <div className="max-w-4xl space-y-10">
-        <section className="animate-in">
+        <EditableSection
+          title="Recognition Study Design"
+          items={recognitionStudy}
+          fields={[{ key: 'text', label: 'Content', type: 'textarea' }]}
+          onSave={(items) => updateSection('recognition_study', items)}
+          className="animate-in"
+        >
           <h2 className="section-heading flex items-center gap-2">
             <ClipboardCheck className="w-4 h-4 text-primary-500" />
             Recognition Study Design
           </h2>
           <div className="card p-5 text-sm text-slate-600 leading-relaxed">
-            Collect real-world paper scans from participating practitioners. Reserve a portion of every writer’s samples as held-out test data, then compare the generic model with doctor-adapted models trained on one, two and three calibration sheets.
+            {recognitionStudy.map((item: any, i: number) => (
+              <p key={i}>{item.text}</p>
+            ))}
           </div>
-        </section>
+        </EditableSection>
+
         {/* Functional Testing */}
-        <section className="animate-in">
+        <EditableSection
+          title="Functional Testing"
+          items={functionalTests}
+          fields={[
+            { key: 'test', label: 'Test', type: 'text' },
+            { key: 'status', label: 'Status', type: 'select', options: ['planned', 'prototype', 'passed', 'failed'] },
+          ]}
+          onSave={(items) => updateSection('functional_tests', items)}
+          className="animate-in"
+        >
           <h2 className="section-heading flex items-center gap-2">
             <Shield className="w-4 h-4 text-primary-500" />
             Functional Testing
           </h2>
           <div className="card divide-y divide-slate-100">
-            {functionalTests.map((test, i) => (
+            {functionalTests.map((test: any, i: number) => (
               <div key={i} className="px-4 py-3 flex items-center justify-between">
                 <span className="text-sm text-slate-700">{test.test}</span>
-                <span className={test.status === 'prototype' ? 'badge-blue' : 'badge-slate'}>
-                  {test.status === 'prototype' ? 'Prototype' : 'Planned'}
+                <span className={test.status === 'prototype' || test.status === 'passed' ? 'badge-blue' : 'badge-slate'}>
+                  {test.status === 'prototype' ? 'Prototype' : test.status.charAt(0).toUpperCase() + test.status.slice(1)}
                 </span>
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* User Testing */}
-        <section className="animate-in-delay-1">
+        <EditableSection
+          title="User Testing Questions"
+          items={userTestingQuestions}
+          fields={[{ key: 'value', label: 'Question', type: 'text' }]}
+          onSave={(items) => updateSection('user_testing_questions', items)}
+          className="animate-in-delay-1"
+        >
           <h2 className="section-heading flex items-center gap-2">
             <Users className="w-4 h-4 text-primary-500" />
             User Testing Questions
@@ -76,33 +85,42 @@ export default function ValidationPage() {
               Planned questions for user testing sessions to evaluate usability and effectiveness:
             </p>
             <ul className="space-y-2.5">
-              {userTestingQuestions.map((q, i) => (
+              {userTestingQuestions.map((q: any, i: number) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
                   <span className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-500 flex-shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  {q}
+                  {q.value}
                 </li>
               ))}
             </ul>
           </div>
-        </section>
+        </EditableSection>
 
         {/* Evaluation Criteria */}
-        <section className="animate-in-delay-2">
+        <EditableSection
+          title="Evaluation Criteria"
+          items={evaluationCriteria}
+          fields={[
+            { key: 'criterion', label: 'Criterion', type: 'text' },
+            { key: 'desc', label: 'Description', type: 'textarea' },
+          ]}
+          onSave={(items) => updateSection('evaluation_criteria', items)}
+          className="animate-in-delay-2"
+        >
           <h2 className="section-heading flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary-500" />
             Evaluation Criteria
           </h2>
           <div className="card divide-y divide-slate-100">
-            {evaluationCriteria.map((item, i) => (
+            {evaluationCriteria.map((item: any, i: number) => (
               <div key={i} className="px-4 py-3">
                 <div className="text-sm font-medium text-slate-700">{item.criterion}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{item.desc}</div>
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
       </div>
     </div>
   );

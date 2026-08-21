@@ -1,20 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { FileText, Eye, Loader2, ExternalLink } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { FileText, Eye, Loader2, ExternalLink, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 
-const suppliedDecks = [
-  {
-    title: 'Pharmacon Commitment Pitch',
-    description: 'Revised scope, doctor-adaptive recognition strategy, roadmap and approval requirements.',
-    file: '/presentations/Pharmacon_Commitment_Pitch.pptx',
-  },
-  {
-    title: 'Merged Project Ideas Presentation',
-    description: 'Original team project-ideas deck, including the medication-scheduling concept that preceded Pharmacon’s revised scope.',
-    file: '/presentations/Merged_Presentation_from_Claude.pptx',
-  },
-];
+interface Deck {
+  id: string;
+  title: string;
+  description: string;
+  filePath: string;
+  sortOrder: number;
+}
 
 interface Deliverable {
   id: string;
@@ -39,15 +35,63 @@ function getStatusBadge(status: string) {
 }
 
 export default function PresentationsPage() {
+  const { isAuthenticated } = useAuth();
+  const [decks, setDecks] = useState<Deck[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Edit state for decks
+  const [editingDeck, setEditingDeck] = useState<string | null>(null);
+  const [deckDraft, setDeckDraft] = useState({ title: '', description: '', filePath: '' });
+  const [addingDeck, setAddingDeck] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    api.get<{ deliverables: Deliverable[] }>('/deliverables')
-      .then((data) => setDeliverables(data.deliverables))
+    Promise.all([
+      api.get<{ decks: Deck[] }>('/content/decks'),
+      api.get<{ deliverables: Deliverable[] }>('/deliverables'),
+    ])
+      .then(([deckData, delivData]) => {
+        setDecks(deckData.decks);
+        setDeliverables(delivData.deliverables);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const startEditDeck = (deck: Deck) => {
+    setEditingDeck(deck.id);
+    setDeckDraft({ title: deck.title, description: deck.description, filePath: deck.filePath });
+  };
+
+  const saveDeck = async () => {
+    if (!editingDeck) return;
+    setSaving(true);
+    try {
+      await api.put(`/content/decks/${editingDeck}`, deckDraft);
+      setDecks((prev) => prev.map((d) => d.id === editingDeck ? { ...d, ...deckDraft } : d));
+      setEditingDeck(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addDeck = async () => {
+    setSaving(true);
+    try {
+      const newDeck = await api.post<Deck>('/content/decks', deckDraft);
+      setDecks((prev) => [...prev, newDeck]);
+      setAddingDeck(false);
+      setDeckDraft({ title: '', description: '', filePath: '' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteDeck = async (id: string) => {
+    await api.delete(`/content/decks/${id}`);
+    setDecks((prev) => prev.filter((d) => d.id !== id));
+  };
 
   if (loading) {
     return (
@@ -78,19 +122,74 @@ export default function PresentationsPage() {
       <p className="page-subtitle">Each deliverable has its own page with full detail and file attachments.</p>
 
       <div className="max-w-4xl space-y-8">
+        {/* Supplied Presentations — editable */}
         <section className="animate-in">
-          <h2 className="section-heading">Supplied Presentations</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {suppliedDecks.map((deck) => (
-              <a key={deck.title} href={deck.file} download className="card-hover p-4 group">
-                <div className="flex items-center justify-between mb-3">
-                  <FileText className="w-4 h-4 text-primary-500" />
-                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-primary-500" />
+          <div className="flex items-center gap-2 group mb-3">
+            <h2 className="section-heading flex-1">Supplied Presentations</h2>
+            {isAuthenticated && !addingDeck && (
+              <button
+                onClick={() => { setAddingDeck(true); setDeckDraft({ title: '', description: '', filePath: '' }); }}
+                className="edit-pencil-btn flex items-center gap-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Add new deck form */}
+          {addingDeck && (
+            <div className="card p-4 mb-3 border-primary-200 bg-primary-50/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">New Presentation</span>
+                <div className="flex gap-1">
+                  <button onClick={() => setAddingDeck(false)} className="edit-action-btn text-slate-500 hover:text-slate-700"><X className="w-4 h-4" /></button>
+                  <button onClick={addDeck} disabled={saving || !deckDraft.title} className="edit-action-btn text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
                 </div>
-                <h3 className="text-sm font-medium text-slate-800 mb-1">{deck.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{deck.description}</p>
-                <span className="inline-block mt-3 text-xs font-medium text-primary-600">Download presentation</span>
-              </a>
+              </div>
+              <input type="text" placeholder="Title" value={deckDraft.title} onChange={(e) => setDeckDraft((d) => ({ ...d, title: e.target.value }))} className="editable-input" />
+              <textarea placeholder="Description" value={deckDraft.description} onChange={(e) => setDeckDraft((d) => ({ ...d, description: e.target.value }))} className="editable-textarea" rows={2} />
+              <input type="text" placeholder="File path (e.g. /presentations/file.pptx)" value={deckDraft.filePath} onChange={(e) => setDeckDraft((d) => ({ ...d, filePath: e.target.value }))} className="editable-input" />
+            </div>
+          )}
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {decks.map((deck) => (
+              editingDeck === deck.id ? (
+                <div key={deck.id} className="card p-4 border-primary-200 bg-primary-50/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Editing</span>
+                    <div className="flex gap-1">
+                      <button onClick={() => setEditingDeck(null)} className="edit-action-btn text-slate-500 hover:text-slate-700"><X className="w-4 h-4" /></button>
+                      <button onClick={saveDeck} disabled={saving} className="edit-action-btn text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <input type="text" value={deckDraft.title} onChange={(e) => setDeckDraft((d) => ({ ...d, title: e.target.value }))} className="editable-input" />
+                  <textarea value={deckDraft.description} onChange={(e) => setDeckDraft((d) => ({ ...d, description: e.target.value }))} className="editable-textarea" rows={2} />
+                  <input type="text" value={deckDraft.filePath} onChange={(e) => setDeckDraft((d) => ({ ...d, filePath: e.target.value }))} className="editable-input" placeholder="File path" />
+                </div>
+              ) : (
+                <div key={deck.id} className="card-hover p-4 group relative">
+                  <a href={deck.filePath} download className="block">
+                    <div className="flex items-center justify-between mb-3">
+                      <FileText className="w-4 h-4 text-primary-500" />
+                      <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-primary-500" />
+                    </div>
+                    <h3 className="text-sm font-medium text-slate-800 mb-1">{deck.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">{deck.description}</p>
+                    <span className="inline-block mt-3 text-xs font-medium text-primary-600">Download presentation</span>
+                  </a>
+                  {isAuthenticated && (
+                    <div className="absolute top-2 right-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.preventDefault(); startEditDeck(deck); }} className="edit-pencil-btn"><Pencil className="w-3 h-3" /></button>
+                      <button onClick={(e) => { e.preventDefault(); deleteDeck(deck.id); }} className="edit-pencil-btn text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  )}
+                </div>
+              )
             ))}
           </div>
         </section>

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, FileText, FlaskConical, Info, Users, GitBranch, ExternalLink, Loader2 } from 'lucide-react';
 import { api } from '../api/client';
+import { useEditableContent } from '../hooks/useEditableContent';
+import EditableSection from '../components/EditableSection';
 
 interface TeamMember {
   id: string;
@@ -13,15 +15,6 @@ interface TeamMember {
   linkedin_url: string;
   avatar_filename?: string | null;
 }
-
-const workflowSteps = [
-  { label: 'Handwritten Prescription', desc: 'Paper-based doctor prescription' },
-  { label: 'AI-Assisted Extraction', desc: 'Computer vision + handwriting recognition' },
-  { label: 'Human Verification', desc: 'Confidence-aware review by staff' },
-  { label: 'Formulary / Inventory Match', desc: 'Automated medicine matching' },
-  { label: 'Confirmed Digital Prescription', desc: 'Verified and stored securely' },
-  { label: 'Patient Dashboard', desc: 'Accessible schedule and history' },
-];
 
 const quickLinks = [
   { label: 'Project Overview', path: '/project', icon: FileText },
@@ -35,6 +28,11 @@ const quickLinks = [
 export default function HomePage() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [teamLoaded, setTeamLoaded] = useState(false);
+  const { sections, loading, updateSection } = useEditableContent('home');
+
+  const workflowSteps = sections.workflow_steps || [];
+  const keyPoints = sections.key_points || [];
+  const statusCards = sections.status_cards || [];
 
   useEffect(() => {
     api.get<{ members: TeamMember[] }>('/team')
@@ -42,6 +40,14 @@ export default function HomePage() {
       .catch(() => {})
       .finally(() => setTeamLoaded(true));
   }, []);
+
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -78,34 +84,32 @@ export default function HomePage() {
       {/* Current Status */}
       <div className="border-t border-slate-100 bg-slate-50/50">
         <div className="page-container py-12">
-          <div className="text-center mb-8 animate-in">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Current Status</h2>
-            <p className="text-sm text-slate-500">Project phase and recent progress</p>
-          </div>
+          <EditableSection
+            items={statusCards}
+            fields={[
+              { key: 'label', label: 'Label/Icon', type: 'text' },
+              { key: 'title', label: 'Title', type: 'text' },
+              { key: 'subtitle', label: 'Subtitle', type: 'text' },
+            ]}
+            onSave={(items) => updateSection('status_cards', items)}
+          >
+            <div className="text-center mb-8 animate-in">
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Current Status</h2>
+              <p className="text-sm text-slate-500">Project phase and recent progress</p>
+            </div>
 
-          <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto animate-in-delay-1">
-            <div className="card p-5 text-center">
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg font-semibold text-emerald-600">V1</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-800">Planning V1</div>
-              <div className="text-xs text-slate-500 mt-1">Current phase</div>
+            <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto animate-in-delay-1">
+              {statusCards.map((card: any, i: number) => (
+                <div key={i} className="card p-5 text-center">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+                    <span className="text-lg font-semibold text-emerald-600">{card.label === 'prototype' ? '🧪' : card.label === 'evaluation' ? 'ℹ️' : card.label}</span>
+                  </div>
+                  <div className="text-sm font-semibold text-slate-800">{card.title}</div>
+                  <div className="text-xs text-slate-500 mt-1">{card.subtitle}</div>
+                </div>
+              ))}
             </div>
-            <div className="card p-5 text-center">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-3">
-                <FlaskConical className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="text-sm font-semibold text-slate-800">Prototype Stage</div>
-              <div className="text-xs text-slate-500 mt-1">Demonstrating proposed workflow</div>
-            </div>
-            <div className="card p-5 text-center">
-              <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mx-auto mb-3">
-                <Info className="w-5 h-5 text-amber-600" />
-              </div>
-              <div className="text-sm font-semibold text-slate-800">Under Evaluation</div>
-              <div className="text-xs text-slate-500 mt-1">Scope being refined</div>
-            </div>
-          </div>
+          </EditableSection>
         </div>
       </div>
 
@@ -174,49 +178,63 @@ export default function HomePage() {
       {/* Workflow */}
       <div className="border-t border-slate-100">
         <div className="page-container py-16">
-          <div className="text-center mb-10 animate-in">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Proposed Workflow</h2>
-            <p className="text-sm text-slate-500">End-to-end prescription digitisation pipeline</p>
-          </div>
+          <EditableSection
+            items={workflowSteps}
+            fields={[
+              { key: 'label', label: 'Step Name', type: 'text' },
+              { key: 'desc', label: 'Description', type: 'text' },
+            ]}
+            onSave={(items) => updateSection('workflow_steps', items)}
+          >
+            <div className="text-center mb-10 animate-in">
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Proposed Workflow</h2>
+              <p className="text-sm text-slate-500">End-to-end prescription digitisation pipeline</p>
+            </div>
 
-          <div className="max-w-md mx-auto space-y-0">
-            {workflowSteps.map((step, i) => (
-              <div key={i} className="animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
-                <div className="workflow-step">
-                  <div className="w-8 h-8 rounded-md bg-primary-50 flex items-center justify-center text-primary-600 text-sm font-semibold flex-shrink-0">
-                    {i + 1}
+            <div className="max-w-md mx-auto space-y-0">
+              {workflowSteps.map((step: any, i: number) => (
+                <div key={i} className="animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
+                  <div className="workflow-step">
+                    <div className="w-8 h-8 rounded-md bg-primary-50 flex items-center justify-center text-primary-600 text-sm font-semibold flex-shrink-0">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-slate-800">{step.label}</div>
+                      <div className="text-xs text-slate-500">{step.desc}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-slate-800">{step.label}</div>
-                    <div className="text-xs text-slate-500">{step.desc}</div>
-                  </div>
+                  {i < workflowSteps.length - 1 && (
+                    <div className="workflow-arrow py-1.5">
+                      <ArrowDown className="w-4 h-4" />
+                    </div>
+                  )}
                 </div>
-                {i < workflowSteps.length - 1 && (
-                  <div className="workflow-arrow py-1.5">
-                    <ArrowDown className="w-4 h-4" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </EditableSection>
         </div>
       </div>
 
       {/* Key points */}
       <div className="border-t border-slate-100 bg-slate-50/50">
         <div className="page-container py-16">
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { title: 'Current Direction', desc: 'Exploring reliable handwriting digitisation with doctor-specific adaptation and formulary integration.' },
-              { title: 'Prototype Stage', desc: 'Demonstrating the proposed workflow with fictional data. Exact scope is still being evaluated by our team.' },
-              { title: 'Modular Architecture', desc: 'Designed for flexibility — components can be replaced, added or removed as the project scope evolves.' },
-            ].map((item, i) => (
-              <div key={i} className="card p-5 animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
-                <h3 className="text-sm font-semibold text-slate-800 mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
+          <EditableSection
+            items={keyPoints}
+            fields={[
+              { key: 'title', label: 'Title', type: 'text' },
+              { key: 'desc', label: 'Description', type: 'textarea' },
+            ]}
+            onSave={(items) => updateSection('key_points', items)}
+          >
+            <div className="grid md:grid-cols-3 gap-6">
+              {keyPoints.map((item: any, i: number) => (
+                <div key={i} className="card p-5 animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
+                  <h3 className="text-sm font-semibold text-slate-800 mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </EditableSection>
         </div>
       </div>
 

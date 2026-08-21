@@ -1,6 +1,24 @@
-import { Info, AlertTriangle } from 'lucide-react';
+import { Info, AlertTriangle, Loader2 } from 'lucide-react';
+import { useEditableContent } from '../hooks/useEditableContent';
+import EditableSection from '../components/EditableSection';
 
 export default function ProjectPage() {
+  const { sections, loading, updateSection } = useEditableContent('project');
+  const overview = sections.overview || [];
+  const direction = sections.direction || [];
+  const why = sections.why || [];
+  const coreIdea = sections.core_idea || [];
+  const users = sections.users || [];
+  const engineering = sections.engineering || [];
+
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <div className="prototype-banner mb-4">
@@ -12,45 +30,42 @@ export default function ProjectPage() {
 
       <div className="space-y-8 max-w-3xl">
         {/* Overview */}
-        <section className="animate-in">
-          <h2 className="section-heading">What is Pharmacon?</h2>
+        <EditableSection
+          title="What is Pharmacon?"
+          items={overview}
+          fields={[{ key: 'text', label: 'Paragraph', type: 'textarea' }]}
+          onSave={(items) => updateSection('overview', items)}
+          className="animate-in"
+        >
           <div className="card p-5 space-y-3">
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Pharmacon is a <strong>proposed platform</strong> for digitising handwritten medical prescriptions 
-              and connecting clinics, pharmacies and patients through a verified digital workflow.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              The core idea is to use AI-assisted handwriting recognition — with human verification — to convert 
-              paper prescriptions into structured digital records, match them against a formulary/inventory system, 
-              and provide patients with a clear view of their confirmed prescriptions and medicine schedules.
-            </p>
+            {overview.map((p: any, i: number) => (
+              <p key={i} className="text-sm text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+            ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Current Direction */}
-        <section className="animate-in-delay-1">
-          <h2 className="section-heading">Current Direction</h2>
+        <EditableSection
+          title="Current Direction"
+          items={direction}
+          fields={[{ key: 'value', label: 'Direction item', type: 'text' }]}
+          onSave={(items) => updateSection('direction', items)}
+          className="animate-in-delay-1"
+        >
           <div className="card p-5">
             <p className="text-sm text-slate-600 leading-relaxed mb-4">
               Based on our professor's guidance, we are currently exploring the following areas:
             </p>
             <ul className="space-y-2.5">
-              {[
-                'Reliable digitisation of handwritten prescriptions using computer vision',
-                'Doctor-specific handwriting adaptation to improve recognition accuracy',
-                'Formulary and inventory integration for medicine matching',
-                'Patient dashboard for viewing confirmed prescriptions and schedules',
-                'Confidence-aware review workflow with human verification',
-                'Audit trail and role-based access for accountability',
-              ].map((item, i) => (
+              {direction.map((item: any, i: number) => (
                 <li key={i} className="flex gap-2.5 text-sm text-slate-600">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-400 mt-1.5 flex-shrink-0" />
-                  {item}
+                  {item.value}
                 </li>
               ))}
             </ul>
           </div>
-        </section>
+        </EditableSection>
 
         {/* Scope Notice */}
         <section className="animate-in-delay-2">
@@ -59,8 +74,8 @@ export default function ProjectPage() {
             <div>
               <p className="text-sm font-medium text-amber-800 mb-1">Scope Under Evaluation</p>
               <p className="text-xs text-amber-700 leading-relaxed">
-                The exact final scope of Pharmacon is still being evaluated by our team. The information 
-                presented here reflects our current direction, which may be refined as we progress. 
+                The exact final scope of Pharmacon is still being evaluated by our team. The information
+                presented here reflects our current direction, which may be refined as we progress.
                 No production deployment or clinical validation is claimed.
               </p>
             </div>
@@ -68,70 +83,73 @@ export default function ProjectPage() {
         </section>
 
         {/* Why */}
-        <section className="animate-in-delay-3">
-          <h2 className="section-heading">Why We Are Building It</h2>
+        <EditableSection
+          title="Why We Are Building It"
+          items={why}
+          fields={[{ key: 'text', label: 'Paragraph', type: 'textarea' }]}
+          onSave={(items) => updateSection('why', items)}
+          className="animate-in-delay-3"
+        >
           <div className="card p-5 space-y-3">
-            <p className="text-sm text-slate-600 leading-relaxed">
-              In many clinical settings, doctors still write prescriptions by hand. Clinic and pharmacy staff 
-              then need to interpret and manually digitise these prescriptions — a process that can introduce 
-              errors, delays and disconnected records.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Pharmacon proposes to reduce this manual burden by providing an AI-assisted extraction step 
-              with human verification, connecting the digitised prescription to formulary/inventory systems, 
-              and giving patients visibility into their confirmed prescriptions.
-            </p>
+            {why.map((p: any, i: number) => (
+              <p key={i} className="text-sm text-slate-600 leading-relaxed">{p.text}</p>
+            ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Core Idea */}
-        <section>
-          <h2 className="section-heading">Core Idea</h2>
+        <EditableSection
+          title="Core Idea"
+          items={coreIdea}
+          fields={[{ key: 'text', label: 'Quote', type: 'textarea' }]}
+          onSave={(items) => updateSection('core_idea', items)}
+        >
           <div className="card p-5">
-            <p className="text-sm text-slate-600 leading-relaxed italic">
-              "One photo → one review screen → one confirmation — instead of full manual transcription."
-            </p>
+            {coreIdea.map((p: any, i: number) => (
+              <p key={i} className="text-sm text-slate-600 leading-relaxed italic">{p.text}</p>
+            ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Users */}
-        <section>
-          <h2 className="section-heading">Proposed Users</h2>
+        <EditableSection
+          title="Proposed Users"
+          items={users}
+          fields={[
+            { key: 'user', label: 'User Type', type: 'text' },
+            { key: 'desc', label: 'Description', type: 'text' },
+          ]}
+          onSave={(items) => updateSection('users', items)}
+        >
           <div className="grid sm:grid-cols-2 gap-3">
-            {[
-              { user: 'Doctors', desc: 'Write prescriptions; optionally calibrate handwriting' },
-              { user: 'Clinic Staff', desc: 'Review AI-extracted prescriptions; confirm or correct' },
-              { user: 'Pharmacists', desc: 'Manage inventory; confirm dispensing' },
-              { user: 'Patients', desc: 'View confirmed prescriptions and medicine schedule' },
-              { user: 'Administrators', desc: 'Manage users, clinics and system configuration' },
-            ].map((item, i) => (
+            {users.map((item: any, i: number) => (
               <div key={i} className="card p-4">
                 <div className="text-sm font-medium text-slate-800 mb-1">{item.user}</div>
                 <div className="text-xs text-slate-500">{item.desc}</div>
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Engineering Work */}
-        <section>
-          <h2 className="section-heading">Expected Engineering Work</h2>
+        <EditableSection
+          title="Expected Engineering Work"
+          items={engineering}
+          fields={[
+            { key: 'area', label: 'Area', type: 'text' },
+            { key: 'desc', label: 'Description', type: 'text' },
+          ]}
+          onSave={(items) => updateSection('engineering', items)}
+        >
           <div className="card divide-y divide-slate-100">
-            {[
-              { area: 'Frontend', desc: 'React web application with role-based portals' },
-              { area: 'Backend', desc: 'Node.js API with modular service architecture' },
-              { area: 'AI / CV', desc: 'Handwriting recognition with doctor-specific adaptation' },
-              { area: 'Integration', desc: 'Formulary/inventory adapter and matching service' },
-              { area: 'Database', desc: 'Prescription, patient and audit data storage' },
-              { area: 'Evaluation', desc: 'Systematic comparison of recognition approaches' },
-            ].map((item, i) => (
+            {engineering.map((item: any, i: number) => (
               <div key={i} className="px-5 py-3 flex gap-4">
                 <span className="text-sm font-medium text-slate-700 w-24 flex-shrink-0">{item.area}</span>
                 <span className="text-sm text-slate-500">{item.desc}</span>
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
       </div>
     </div>
   );

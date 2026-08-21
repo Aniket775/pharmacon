@@ -1,15 +1,21 @@
-import { AlertTriangle, CheckCircle, Info, Shield } from 'lucide-react';
-import { risks } from '../data/mockData';
-
-const techFeasibility = [
-  { area: 'Web application', status: 'feasible', note: 'React + Node.js — well-established stack' },
-  { area: 'Computer vision / handwriting recognition', status: 'research', note: 'Active research area; accuracy depends on calibration' },
-  { area: 'API architecture', status: 'feasible', note: 'RESTful services with modular adapters' },
-  { area: 'Database', status: 'feasible', note: 'SQLite for prototype; PostgreSQL for production' },
-  { area: 'Role-based access', status: 'feasible', note: 'Standard authentication and authorization patterns' },
-];
+import { Info, Shield, Loader2 } from 'lucide-react';
+import { useEditableContent } from '../hooks/useEditableContent';
+import EditableSection from '../components/EditableSection';
 
 export default function FeasibilityPage() {
+  const { sections, loading, updateSection } = useEditableContent('feasibility');
+  const techFeasibility = sections.tech_feasibility || [];
+  const dataFeasibility = sections.data_feasibility || [];
+  const risks = sections.risks || [];
+
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
+
   const impactColor = (impact: string) => {
     switch (impact) {
       case 'high': return 'badge-red';
@@ -26,10 +32,19 @@ export default function FeasibilityPage() {
 
       <div className="max-w-4xl space-y-10">
         {/* Technical Feasibility */}
-        <section className="animate-in">
-          <h2 className="section-heading">Technical Feasibility</h2>
+        <EditableSection
+          title="Technical Feasibility"
+          items={techFeasibility}
+          fields={[
+            { key: 'area', label: 'Area', type: 'text' },
+            { key: 'status', label: 'Status', type: 'select', options: ['feasible', 'research'] },
+            { key: 'note', label: 'Note', type: 'text' },
+          ]}
+          onSave={(items) => updateSection('tech_feasibility', items)}
+          className="animate-in"
+        >
           <div className="card divide-y divide-slate-100">
-            {techFeasibility.map((item, i) => (
+            {techFeasibility.map((item: any, i: number) => (
               <div key={i} className="px-4 py-3 flex items-center gap-4">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-slate-700">{item.area}</div>
@@ -41,29 +56,44 @@ export default function FeasibilityPage() {
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Data Feasibility */}
-        <section className="animate-in-delay-1">
-          <h2 className="section-heading">Data Feasibility</h2>
+        <EditableSection
+          title="Data Feasibility"
+          items={dataFeasibility}
+          fields={[{ key: 'text', label: 'Content', type: 'textarea' }]}
+          onSave={(items) => updateSection('data_feasibility', items)}
+          className="animate-in-delay-1"
+        >
           <div className="card p-5">
             <div className="flex gap-3 items-start">
               <Info className="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Appropriate handwritten prescription samples and participating writers will be required for training, 
-                calibration and evaluation. The first operational priority is recruiting practitioners willing to provide 
-                three calibration sheets. Held-out paper scans should be collected from every participating writer to 
-                enable fair evaluation of doctor-specific adaptation.
-              </p>
+              <div className="space-y-2">
+                {dataFeasibility.map((item: any, i: number) => (
+                  <p key={i} className="text-sm text-slate-600 leading-relaxed">{item.text}</p>
+                ))}
+              </div>
             </div>
           </div>
-        </section>
+        </EditableSection>
 
         {/* Risk Register */}
-        <section className="animate-in-delay-2">
-          <h2 className="section-heading">Risk Register</h2>
+        <EditableSection
+          title="Risk Register"
+          items={risks}
+          fields={[
+            { key: 'id', label: 'ID', type: 'text' },
+            { key: 'risk', label: 'Risk', type: 'text' },
+            { key: 'impact', label: 'Impact', type: 'select', options: ['high', 'medium', 'low'] },
+            { key: 'mitigation', label: 'Mitigation', type: 'textarea' },
+            { key: 'fallback', label: 'Fallback', type: 'textarea' },
+          ]}
+          onSave={(items) => updateSection('risks', items)}
+          className="animate-in-delay-2"
+        >
           <div className="space-y-3">
-            {risks.map((risk) => (
+            {risks.map((risk: any) => (
               <div key={risk.id} className="card p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2">
@@ -87,7 +117,7 @@ export default function FeasibilityPage() {
               </div>
             ))}
           </div>
-        </section>
+        </EditableSection>
 
         {/* Safety Boundary */}
         <section className="animate-in-delay-3">
@@ -97,7 +127,7 @@ export default function FeasibilityPage() {
               <h3 className="text-sm font-semibold text-slate-700">Safety Boundary</h3>
             </div>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Pharmacon is intended to digitise and connect confirmed prescriptions. It does not diagnose conditions, 
+              Pharmacon is intended to digitise and connect confirmed prescriptions. It does not diagnose conditions,
               recommend medicines, substitute medicines, change dosages, or override professional clinical judgement.
             </p>
           </div>
