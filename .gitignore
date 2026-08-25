@@ -1,0 +1,10 @@
+node_modules/
+dist/
+server/pharmacon.db
+server/pharmacon.db-shm
+server/pharmacon.db-wal
+server/uploads/
+.env
+.env.*
+!.env.example
+npm-debug.log*

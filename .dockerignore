@@ -1,0 +1,6 @@
+node_modules
+dist
+.git
+server/pharmacon.db*
+server/uploads
+npm-debug.log
