@@ -127,6 +127,24 @@ ALTER TABLE public.refill_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_content ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public Read Access for Versions" ON public.versions;
+DROP POLICY IF EXISTS "Public Read Access for Deliverables" ON public.deliverables;
+DROP POLICY IF EXISTS "Public Read Access for Team Members" ON public.team_members;
+DROP POLICY IF EXISTS "Public Read Access for Inventory" ON public.inventory_items;
+DROP POLICY IF EXISTS "Public Read Access for Prescriptions" ON public.prescriptions;
+DROP POLICY IF EXISTS "Public Read Access for Refills" ON public.refill_requests;
+DROP POLICY IF EXISTS "Public Read Access for Audit" ON public.audit_events;
+DROP POLICY IF EXISTS "Public Read Access for Page Content" ON public.page_content;
+
+DROP POLICY IF EXISTS "Allow All for Authenticated & Public Service" ON public.versions;
+DROP POLICY IF EXISTS "Allow All for Deliverables" ON public.deliverables;
+DROP POLICY IF EXISTS "Allow All for Team" ON public.team_members;
+DROP POLICY IF EXISTS "Allow All for Inventory" ON public.inventory_items;
+DROP POLICY IF EXISTS "Allow All for Prescriptions" ON public.prescriptions;
+DROP POLICY IF EXISTS "Allow All for Refills" ON public.refill_requests;
+DROP POLICY IF EXISTS "Allow All for Audit" ON public.audit_events;
+DROP POLICY IF EXISTS "Allow All for Page Content" ON public.page_content;
+
 CREATE POLICY "Public Read Access for Versions" ON public.versions FOR SELECT USING (true);
 CREATE POLICY "Public Read Access for Deliverables" ON public.deliverables FOR SELECT USING (true);
 CREATE POLICY "Public Read Access for Team Members" ON public.team_members FOR SELECT USING (true);
@@ -136,14 +154,14 @@ CREATE POLICY "Public Read Access for Refills" ON public.refill_requests FOR SEL
 CREATE POLICY "Public Read Access for Audit" ON public.audit_events FOR SELECT USING (true);
 CREATE POLICY "Public Read Access for Page Content" ON public.page_content FOR SELECT USING (true);
 
-CREATE POLICY "Allow All for Authenticated & Public Service" ON public.versions FOR ALL USING (true);
-CREATE POLICY "Allow All for Deliverables" ON public.deliverables FOR ALL USING (true);
-CREATE POLICY "Allow All for Team" ON public.team_members FOR ALL USING (true);
-CREATE POLICY "Allow All for Inventory" ON public.inventory_items FOR ALL USING (true);
-CREATE POLICY "Allow All for Prescriptions" ON public.prescriptions FOR ALL USING (true);
-CREATE POLICY "Allow All for Refills" ON public.refill_requests FOR ALL USING (true);
-CREATE POLICY "Allow All for Audit" ON public.audit_events FOR ALL USING (true);
-CREATE POLICY "Allow All for Page Content" ON public.page_content FOR ALL USING (true);
+CREATE POLICY "Allow All for Authenticated & Public Service" ON public.versions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Deliverables" ON public.deliverables FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Team" ON public.team_members FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Inventory" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Prescriptions" ON public.prescriptions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Refills" ON public.refill_requests FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Audit" ON public.audit_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow All for Page Content" ON public.page_content FOR ALL USING (true) WITH CHECK (true);
 
 -- 11. Storage Bucket Configuration
 INSERT INTO storage.buckets (id, name, public) 
@@ -152,6 +170,9 @@ VALUES
   ('deliverables', 'deliverables', true),
   ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Public Access to Buckets" ON storage.objects;
+DROP POLICY IF EXISTS "Allow Upload to Buckets" ON storage.objects;
 
 CREATE POLICY "Public Access to Buckets" 
 ON storage.objects FOR SELECT 

@@ -1,15 +1,7 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { api } from '../api/client';
 
-// Environment variables for Supabase (optional; graceful fallback provided)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
-
-export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const SUPABASE_URL = 'https://gvlidgvvwpdhocyjigfr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_uJRb1N_Tk6hDIJcqTIi3lg_XCX51eY_';
 
 export interface PresentationVersion {
   id: string;
@@ -96,32 +88,7 @@ const INITIAL_DELIVERABLES: DeliverableItem[] = [
     file_url: '',
     authors: 'Team Pharmacon',
   },
-  {
-    id: 'deliv-software-grid',
-    title: 'UCS503 Software Grid & Architecture Stack',
-    type: 'Technical Specification',
-    version_id: 'v1.0.0',
-    version_name: 'Planning Presentation v1',
-    date: '2026-08-25',
-    status: 'published',
-    description: 'Full stack breakdown across Frontend (React/Vite/Tailwind), Backend (Node/Supabase), and Storage.',
-    file_name: 'Software_Grid_Matrix.pdf',
-    authors: 'Team Pharmacon',
-  },
-  {
-    id: 'deliv-proto-demo',
-    title: 'Prescription Digitisation Interactive Prototype',
-    type: 'Live Prototype Demo',
-    version_id: 'v1.0.0',
-    version_name: 'Planning Presentation v1',
-    date: '2026-08-25',
-    status: 'in-progress',
-    description: 'Working end-to-end prototype from prescription upload to doctor verification and inventory matching.',
-    authors: 'Team Pharmacon',
-  },
 ];
-
-// ─── LocalStorage Key Helpers ──────────────────────────────────────────
 
 const STORAGE_KEYS = {
   VERSIONS: 'pharmacon_versions_store',
@@ -148,28 +115,48 @@ function setLocalStore<T>(key: string, data: T[]): void {
   } catch (e) {}
 }
 
+// Direct HTTPS helper for Supabase REST API
+async function supabaseRest<T>(path: string, options: RequestInit = {}): Promise<T | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      console.warn(`Supabase REST error on ${path}:`, res.status, res.statusText);
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn(`Supabase network error on ${path}:`, err);
+    return null;
+  }
+}
+
 // ─── Data Access Layer ─────────────────────────────────────────────────
 
 export const storageService = {
   async getVersions(): Promise<PresentationVersion[]> {
-    // 1. Try local API first
+    // 1. Try Supabase cloud
+    const cloudVersions = await supabaseRest<PresentationVersion[]>('versions?select=*&order=created_at.desc');
+    if (cloudVersions && cloudVersions.length > 0) {
+      setLocalStore(STORAGE_KEYS.VERSIONS, cloudVersions);
+      return cloudVersions;
+    }
+
+    // 2. Try local API
     try {
       const apiRes = await api.get<{ versions: any[] }>('/versions');
       if (apiRes.versions && apiRes.versions.length > 0) {
         return apiRes.versions as PresentationVersion[];
       }
     } catch (e) {}
-
-    // 2. Try Supabase
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('versions')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data as PresentationVersion[];
-      }
-    }
 
     // 3. Fallback Local Storage
     return getLocalStore(STORAGE_KEYS.VERSIONS, INITIAL_VERSIONS);
@@ -182,31 +169,19 @@ export const storageService = {
       ...version,
     };
 
-    // 1. Persist to Express API / SQLite backend
+    // 1. Persist to Supabase cloud
+    await supabaseRest('versions', {
+      method: 'POST',
+      body: JSON.stringify(newVersion),
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    });
+
+    // 2. Persist to Express API backend
     try {
-      await api.post('/versions', {
-        id: newVersion.id,
-        name: newVersion.name,
-        date: newVersion.date,
-        authors: newVersion.authors,
-        status: newVersion.status,
-        changeSummary: newVersion.change_summary,
-        deploymentUrl: newVersion.deployment_url,
-      });
-    } catch (err) {
-      console.warn('API version post fallback:', err);
-    }
+      await api.post('/versions', newVersion);
+    } catch (err) {}
 
-    // 2. Persist to Supabase if configured
-    if (supabase) {
-      try {
-        await supabase.from('versions').insert([newVersion]);
-      } catch (err) {
-        console.warn('Supabase version insert fallback:', err);
-      }
-    }
-
-    // 3. Always update local storage for offline / static consistency
+    // 3. Update localStorage
     const current = getLocalStore<PresentationVersion>(STORAGE_KEYS.VERSIONS, INITIAL_VERSIONS);
     const updated = current.map(v => v.status === 'current' && newVersion.status === 'current' ? { ...v, status: 'archived' as const } : v);
     const result = [newVersion, ...updated];
@@ -215,6 +190,12 @@ export const storageService = {
   },
 
   async getDeliverables(): Promise<DeliverableItem[]> {
+    const cloudDelivs = await supabaseRest<DeliverableItem[]>('deliverables?select=*&order=created_at.desc');
+    if (cloudDelivs && cloudDelivs.length > 0) {
+      setLocalStore(STORAGE_KEYS.DELIVERABLES, cloudDelivs);
+      return cloudDelivs;
+    }
+
     try {
       const apiRes = await api.get<{ deliverables: any[] }>('/deliverables');
       if (apiRes.deliverables && apiRes.deliverables.length > 0) {
@@ -222,15 +203,6 @@ export const storageService = {
       }
     } catch (e) {}
 
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('deliverables')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data as DeliverableItem[];
-      }
-    }
     return getLocalStore(STORAGE_KEYS.DELIVERABLES, INITIAL_DELIVERABLES);
   },
 
@@ -241,32 +213,16 @@ export const storageService = {
       ...item,
     };
 
-    // 1. Persist to Express API / SQLite backend
+    await supabaseRest('deliverables', {
+      method: 'POST',
+      body: JSON.stringify(newItem),
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    });
+
     try {
-      await api.post('/deliverables', {
-        id: newItem.id,
-        title: newItem.title,
-        type: newItem.type,
-        versionId: newItem.version_id,
-        date: newItem.date,
-        status: newItem.status,
-        description: newItem.description,
-        file_name: newItem.file_name,
-      });
-    } catch (err) {
-      console.warn('API deliverable post fallback:', err);
-    }
+      await api.post('/deliverables', newItem);
+    } catch (err) {}
 
-    // 2. Persist to Supabase if configured
-    if (supabase) {
-      try {
-        await supabase.from('deliverables').insert([newItem]);
-      } catch (err) {
-        console.warn('Supabase deliverable insert fallback:', err);
-      }
-    }
-
-    // 3. Persist to localStorage
     const current = getLocalStore<DeliverableItem>(STORAGE_KEYS.DELIVERABLES, INITIAL_DELIVERABLES);
     const result = [newItem, ...current];
     setLocalStore(STORAGE_KEYS.DELIVERABLES, result);
@@ -274,56 +230,28 @@ export const storageService = {
   },
 
   async uploadFileToStorage(file: File): Promise<{ fileName: string; fileUrl: string; size: number }> {
-    if (supabase) {
-      try {
-        const cleanName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const filePath = `uploads/${cleanName}`;
-
-        const { data, error } = await supabase.storage
-          .from('presentations')
-          .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-        if (!error && data) {
-          const { data: pubData } = supabase.storage.from('presentations').getPublicUrl(filePath);
-          return {
-            fileName: file.name,
-            fileUrl: pubData.publicUrl,
-            size: file.size,
-          };
-        }
-      } catch (err) {
-        console.warn('Supabase storage upload error, using local data URL fallback:', err);
-      }
-    }
-
-    // In-browser / static fallback: create object URL or simulate file upload
     return new Promise((resolve) => {
-      const simulatedUrl = URL.createObjectURL(file);
-      resolve({
-        fileName: file.name,
-        fileUrl: simulatedUrl,
-        size: file.size,
-      });
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve({
+          fileName: file.name,
+          fileUrl: reader.result as string,
+          size: file.size,
+        });
+      };
+      reader.readAsDataURL(file);
     });
   },
 
   async getTeamMembers(): Promise<any[]> {
-    // 1. Try Supabase cloud first
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('team_members')
-          .select('*')
-          .order('id', { ascending: true });
-        if (!error && data && data.length > 0) {
-          return data;
-        }
-      } catch (err) {
-        console.warn('Supabase getTeamMembers fallback:', err);
-      }
+    // 1. Direct Supabase cloud fetch
+    const cloudMembers = await supabaseRest<any[]>('team_members?select=*&order=id.asc');
+    if (cloudMembers && cloudMembers.length > 0) {
+      localStorage.setItem('pharmacon_team_members', JSON.stringify(cloudMembers));
+      return cloudMembers;
     }
 
-    // 2. Try Express API backend
+    // 2. Try Express API
     try {
       const apiRes = await api.get<{ members: any[] }>('/team');
       if (apiRes.members && apiRes.members.length > 0) {
@@ -331,27 +259,19 @@ export const storageService = {
       }
     } catch (e) {}
 
-    // 3. Fallback to cached list
     const cached = localStorage.getItem('pharmacon_team_members');
     return cached ? JSON.parse(cached) : [];
   },
 
   async updateTeamMember(memberId: string, memberData: any): Promise<void> {
-    // 1. Update Supabase cloud database
-    if (supabase) {
-      try {
-        const { error } = await supabase
-          .from('team_members')
-          .upsert({ id: memberId, ...memberData }, { onConflict: 'id' });
-        if (error) {
-          console.warn('Supabase upsert error:', error);
-        }
-      } catch (err) {
-        console.warn('Supabase updateTeamMember fallback:', err);
-      }
-    }
+    // 1. Direct Supabase cloud upsert
+    await supabaseRest('team_members', {
+      method: 'POST',
+      body: JSON.stringify({ id: memberId, ...memberData }),
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    });
 
-    // 2. Update Express API backend
+    // 2. Express API
     try {
       await api.put(`/team/${memberId}`, memberData);
     } catch (err) {}
