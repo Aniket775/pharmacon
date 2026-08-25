@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { storageService } from '../lib/supabase';
 import {
   Loader2, Github, Linkedin, Save, Edit3, X,
   UserCheck, Sparkles, CheckCircle, Camera, Check, Crop
@@ -105,27 +106,17 @@ export default function TeamPage() {
   const [rawImageForCrop, setRawImageForCrop] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch team from API on mount and merge with local edits
+  // Fetch team from Supabase Cloud / API on mount and merge with local edits
   useEffect(() => {
-    api.get<{ members: TeamMember[] }>('/team')
-      .then((data) => {
-        if (data.members && data.members.length > 0) {
-          const cached = localStorage.getItem('pharmacon_team_members');
-          if (cached) {
-            try {
-              const localList: TeamMember[] = JSON.parse(cached);
-              // Merge local modifications into db list
-              const merged = data.members.map((serverM) => {
-                const localM = localList.find((l) => l.id === serverM.id);
-                return localM ? { ...serverM, ...localM } : serverM;
-              });
-              setTeam(merged);
-              localStorage.setItem('pharmacon_team_members', JSON.stringify(merged));
-              return;
-            } catch (e) {}
-          }
-          setTeam(data.members);
-          localStorage.setItem('pharmacon_team_members', JSON.stringify(data.members));
+    storageService.getTeamMembers()
+      .then((members) => {
+        if (members && members.length > 0) {
+          const merged = DEFAULT_MEMBERS.map((def) => {
+            const remote = members.find((m: any) => m.id === def.id);
+            return remote ? { ...def, ...remote } : def;
+          });
+          setTeam(merged);
+          localStorage.setItem('pharmacon_team_members', JSON.stringify(merged));
         }
       })
       .catch(() => {});
@@ -204,9 +195,9 @@ export default function TeamPage() {
     // Dispatch global storage event for Homepage sync
     window.dispatchEvent(new Event('pharmacon_team_updated'));
 
-    // 2. Persist to Backend SQLite database
+    // 2. Persist to Supabase Cloud & Backend SQLite database
     try {
-      await api.put(`/team/${editingMember.id}`, payload);
+      await storageService.updateTeamMember(editingMember.id, payload);
     } catch (err) {
       console.warn('Backend sync warning, stored locally:', err);
     } finally {
