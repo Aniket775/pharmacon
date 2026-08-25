@@ -340,10 +340,12 @@ export const storageService = {
     // 1. Update Supabase cloud database
     if (supabase) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('team_members')
-          .update(memberData)
-          .eq('id', memberId);
+          .upsert({ id: memberId, ...memberData }, { onConflict: 'id' });
+        if (error) {
+          console.warn('Supabase upsert error:', error);
+        }
       } catch (err) {
         console.warn('Supabase updateTeamMember fallback:', err);
       }
