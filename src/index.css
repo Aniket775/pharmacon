@@ -1,220 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-white text-slate-800 antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  :root {
+    --canvas: #FFF8E8;
+    --canvas-dark: #351027;
+    --brand-pink: #FF6F89;
+    --brand-red: #F52F4F;
+    --brand-crimson: #8F1230;
+    --brand-burgundy: #730F34;
+    --brand-dark: #351027;
   }
 
-  * {
-    @apply border-slate-200;
+  html, body {
+    background-color: #FFF8E8;
+    color: #351027;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: #F52F4F;
+    color: #FFF8E8;
   }
 }
 
 @layer components {
-  .page-container {
-    @apply max-w-6xl mx-auto px-6 py-8;
+  /* ─── Tactile Pill Buttons ────────────────────────────────────────────── */
+  .btn-tactile {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: #351027;
+    padding-bottom: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s cubic-bezier(0.19, 1, 0.22, 1);
+    text-decoration: none;
   }
 
-  .page-title {
-    @apply text-2xl font-semibold text-slate-900 mb-1;
+  .btn-tactile:active {
+    transform: translateY(3px);
+    padding-bottom: 1px;
   }
 
-  .page-subtitle {
-    @apply text-base text-slate-500 mb-8;
+  .btn-tactile-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #351027;
+    border-radius: 9999px;
+    padding: 0.65rem 1.6rem;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
   }
 
-  .card {
-    @apply bg-white border border-slate-200 rounded-lg shadow-card;
+  .btn-tactile:hover .btn-tactile-inner {
+    transform: translateY(-2px);
   }
 
-  .card-hover {
-    @apply card transition-shadow duration-200 hover:shadow-card-hover;
+  /* Button Variants */
+  .btn-tactile-white .btn-tactile-inner {
+    background-color: #FFFFFF;
+    color: #351027;
   }
 
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  .btn-tactile-dark .btn-tactile-inner {
+    background-color: #8F1230;
+    color: #FFF8E8;
   }
 
-  .badge-blue {
-    @apply badge bg-blue-50 text-blue-700;
+  .btn-tactile-gold .btn-tactile-inner {
+    background-color: #FECB66;
+    color: #351027;
   }
 
-  .badge-green {
-    @apply badge bg-emerald-50 text-emerald-700;
+  .btn-tactile-pink .btn-tactile-inner {
+    background-color: #F52F4F;
+    color: #FFFFFF;
   }
 
-  .badge-yellow {
-    @apply badge bg-amber-50 text-amber-700;
+  /* ─── Chunky Display Headings ─────────────────────────────────────────── */
+  .heading-chunky {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    color: #351027;
   }
 
-  .badge-red {
-    @apply badge bg-red-50 text-red-700;
+  /* ─── Tag Pills ───────────────────────────────────────────────────────── */
+  .pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1.5px solid #351027;
+    border-radius: 9999px;
+    background-color: #FFF8E8;
+    color: #351027;
+    padding: 0.4rem 1.2rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 0 0 #351027;
   }
 
-  .badge-slate {
-    @apply badge bg-slate-100 text-slate-600;
+  .pill-tag-dark {
+    background-color: #8F1230;
+    color: #FFF8E8;
+    border-color: #351027;
   }
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md
-           bg-primary-500 text-white hover:bg-primary-600 
-           transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  .pill-tag-gold {
+    background-color: #FECB66;
+    color: #351027;
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md
-           border border-slate-300 text-slate-700 bg-white hover:bg-slate-50
-           transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  .pill-tag-pink {
+    background-color: #FF6F89;
+    color: #FFFFFF;
   }
 
-  .btn-ghost {
-    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-           text-slate-600 hover:bg-slate-100
-           transition-colors duration-150;
+  /* ─── Tactile Cards ───────────────────────────────────────────────────── */
+  .card-tactile {
+    background-color: #FFFFFF;
+    border: 2.5px solid #351027;
+    border-radius: 2rem;
+    box-shadow: 0 6px 0 0 #351027;
+    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.25s ease;
   }
 
-  .input {
-    @apply block w-full px-3 py-2 text-sm border border-slate-300 rounded-md
-           placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-           transition-colors duration-150;
+  .card-tactile-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 0 0 #351027;
   }
 
-  .select {
-    @apply input appearance-none bg-no-repeat;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-position: right 0.5rem center;
-    background-size: 1rem;
-    padding-right: 2rem;
+  /* ─── Phone Frames ────────────────────────────────────────────────────── */
+  .phone-container {
+    position: relative;
+    border: 3.5px solid #351027;
+    border-radius: 3rem;
+    padding: 0.75rem;
+    box-shadow: 0 12px 0 0 #351027;
+    background: linear-gradient(180deg, #FFA3B5 0%, #F52F4F 100%);
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
   }
 
-  .label {
-    @apply block text-sm font-medium text-slate-700 mb-1;
-  }
-
-  .section-heading {
-    @apply text-lg font-semibold text-slate-900 mb-4;
-  }
-
-  .stat-card {
-    @apply card p-4;
-  }
-
-  .stat-value {
-    @apply text-2xl font-semibold text-slate-900;
-  }
-
-  .stat-label {
-    @apply text-sm text-slate-500 mt-1;
-  }
-
-  .nav-link {
-    @apply flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150;
-  }
-
-  .nav-link-active {
-    @apply nav-link bg-primary-50 text-primary-700;
-  }
-
-  .nav-link-inactive {
-    @apply nav-link text-slate-600 hover:bg-slate-50 hover:text-slate-900;
-  }
-
-  .workflow-step {
-    @apply flex items-center gap-3 p-3 rounded-md bg-slate-50 border border-slate-100;
-  }
-
-  .workflow-arrow {
-    @apply flex items-center justify-center text-slate-300;
-  }
-
-  .confidence-high {
-    @apply text-emerald-600;
-  }
-
-  .confidence-medium {
-    @apply text-amber-600;
-  }
-
-  .confidence-low {
-    @apply text-red-500;
-  }
-
-  .table-header {
-    @apply px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider;
-  }
-
-  .table-cell {
-    @apply px-4 py-3 text-sm text-slate-700;
-  }
-
-  .prototype-banner {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700;
+  .phone-screen-inner {
+    background-color: #FFF8E8;
+    border: 2px solid #351027;
+    border-radius: 2.35rem;
+    padding: 1.2rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
   }
 }
 
-/* Scrollbar styling */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #FFF8E8;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #FECB66;
+  border: 2px solid #351027;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Custom animations */
-.animate-in {
-  animation: slideUp 0.3s ease-out both;
-}
-
-.animate-in-delay-1 {
-  animation: slideUp 0.3s ease-out 0.05s both;
-}
-
-.animate-in-delay-2 {
-  animation: slideUp 0.3s ease-out 0.1s both;
-}
-
-.animate-in-delay-3 {
-  animation: slideUp 0.3s ease-out 0.15s both;
-}
-
-/* ─── Editable Section Styles ────────────────────────────────────────── */
-
-.edit-pencil-btn {
-  @apply p-1.5 rounded-md text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-all cursor-pointer;
-}
-
-.edit-action-btn {
-  @apply p-1.5 rounded-md transition-colors cursor-pointer;
-}
-
-.editable-input {
-  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white
-         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
-         placeholder:text-slate-300 transition-all;
-}
-
-.editable-textarea {
-  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white resize-y
-         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
-         placeholder:text-slate-300 transition-all;
-}
-
-.editable-select {
-  @apply w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-md bg-white
-         focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
-         transition-all;
+  background: #F52F4F;
 }

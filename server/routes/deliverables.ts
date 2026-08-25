@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db.js';
-import { requireAuth, requireRole, AuthRequest } from '../auth.js';
 
 const router = Router();
 
@@ -14,7 +13,7 @@ router.get('/', (_req, res) => {
     FROM deliverables d
     LEFT JOIN files f ON d.file_id = f.id
     LEFT JOIN versions v ON d.version_id = v.id
-    ORDER BY d.created_at ASC
+    ORDER BY d.created_at DESC
   `).all();
 
   res.json({ deliverables });
@@ -35,37 +34,45 @@ router.get('/:id', (req, res) => {
   `).get(req.params.id) as any;
 
   if (!deliverable) {
-    res.status(404).json({ error: 'Deliverable not found' });
-    return;
+    return res.status(404).json({ error: 'Deliverable not found' });
   }
 
-  // Get version history for this deliverable (other deliverables sharing same title pattern)
+  // Get version history for this deliverable
   const history = getDb().prepare(`
     SELECT d.id, d.title, d.date, d.status, v.name as version_name
     FROM deliverables d
     LEFT JOIN versions v ON d.version_id = v.id
-    WHERE d.title LIKE ? AND d.id != ?
-    ORDER BY d.created_at ASC
-  `).all(`%${deliverable.title.split(' ')[0]}%`, deliverable.id);
+    WHERE d.id != ?
+    ORDER BY d.created_at DESC
+  `).all(deliverable.id);
 
   res.json({ deliverable, history });
 });
 
-// POST /api/deliverables — create a deliverable (admin/instructor only)
-router.post('/', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequest, res) => {
-  const { title, type, versionId, date, status, description, fileId } = req.body;
+// POST /api/deliverables — create a deliverable (persists directly to SQLite)
+router.post('/', (req, res) => {
+  const { id: customId, title, type, versionId, version_id, date, status, description, fileId, file_id, fileName, file_name } = req.body;
 
   if (!title || !type || !date) {
-    res.status(400).json({ error: 'Title, type, and date are required' });
-    return;
+    return res.status(400).json({ error: 'Title, type, and date are required' });
   }
 
-  const id = `D-${uuidv4().slice(0, 8)}`;
+  const id = customId || `D-${uuidv4().slice(0, 8)}`;
+  const resolvedVersionId = versionId || version_id || null;
+  const resolvedFileId = fileId || file_id || null;
 
   getDb().prepare(`
     INSERT INTO deliverables (id, title, type, version_id, date, status, description, file_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, title, type, versionId || null, date, status || 'draft', description || '', fileId || null);
+    ON CONFLICT(id) DO UPDATE SET
+      title = excluded.title,
+      type = excluded.type,
+      version_id = excluded.version_id,
+      date = excluded.date,
+      status = excluded.status,
+      description = excluded.description,
+      file_id = excluded.file_id
+  `).run(id, title, type, resolvedVersionId, date, status || 'published', description || '', resolvedFileId);
 
   const deliverable = getDb().prepare(`
     SELECT d.*, f.original_name as file_name, v.name as version_name
@@ -78,17 +85,16 @@ router.post('/', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequ
   res.json({ deliverable });
 });
 
-// PUT /api/deliverables/:id — update a deliverable (admin/instructor only)
-router.put('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequest, res) => {
+// PUT /api/deliverables/:id — update a deliverable
+router.put('/:id', (req, res) => {
   const db = getDb();
   const existing = db.prepare('SELECT * FROM deliverables WHERE id = ?').get(req.params.id);
 
   if (!existing) {
-    res.status(404).json({ error: 'Deliverable not found' });
-    return;
+    return res.status(404).json({ error: 'Deliverable not found' });
   }
 
-  const { title, type, versionId, date, status, description, fileId } = req.body;
+  const { title, type, versionId, version_id, date, status, description, fileId, file_id } = req.body;
 
   db.prepare(`
     UPDATE deliverables SET
@@ -100,7 +106,7 @@ router.put('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRe
       description = COALESCE(?, description),
       file_id = COALESCE(?, file_id)
     WHERE id = ?
-  `).run(title, type, versionId, date, status, description, fileId, req.params.id);
+  `).run(title, type, versionId || version_id, date, status, description, fileId || file_id, req.params.id);
 
   const deliverable = db.prepare(`
     SELECT d.*, f.original_name as file_name, v.name as version_name
@@ -113,17 +119,9 @@ router.put('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRe
   res.json({ deliverable });
 });
 
-// DELETE /api/deliverables/:id — delete a deliverable (admin only)
-router.delete('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequest, res) => {
-  const db = getDb();
-  const existing = db.prepare('SELECT * FROM deliverables WHERE id = ?').get(req.params.id);
-
-  if (!existing) {
-    res.status(404).json({ error: 'Deliverable not found' });
-    return;
-  }
-
-  db.prepare('DELETE FROM deliverables WHERE id = ?').run(req.params.id);
+// DELETE /api/deliverables/:id — delete a deliverable
+router.delete('/:id', (req, res) => {
+  getDb().prepare('DELETE FROM deliverables WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

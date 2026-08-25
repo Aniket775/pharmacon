@@ -1,9 +1,23 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowRight, FileText, FlaskConical, Info, Users, GitBranch, ExternalLink, Loader2 } from 'lucide-react';
 import { api } from '../api/client';
-import { useEditableContent } from '../hooks/useEditableContent';
-import EditableSection from '../components/EditableSection';
+import {
+  FileText, ShieldCheck, Database, Server, RefreshCw, Zap,
+  CheckCircle, ArrowRight, Activity, Heart, Sparkles, Plus,
+  Layers, Users, Stethoscope, ChevronRight, BarChart3, AlertCircle
+} from 'lucide-react';
+import MedicinePillMascot from '../components/MedicinePillMascot';
+import SectionDivider from '../components/SectionDivider';
+import PhoneShowcase from '../components/PhoneShowcase';
+import ConnectorDiagram from '../components/ConnectorDiagram';
+import ProfileCards from '../components/ProfileCards';
+import CTASection from '../components/CTASection';
+import {
+  initHeroEntrance,
+  initPhoneScrollShowcase,
+  initLayerStackSeparation,
+  initEditorialReveals
+} from '../animations/motionPresets';
 
 interface TeamMember {
   id: string;
@@ -11,245 +25,345 @@ interface TeamMember {
   role: string;
   focus: string;
   avatar: string;
-  github_url: string;
-  linkedin_url: string;
-  avatar_filename?: string | null;
+  skills?: string;
+  color?: string;
+  badgeColor?: string;
 }
 
-const quickLinks = [
-  { label: 'Project Overview', path: '/project', icon: FileText },
-  { label: 'Software Grid', path: '/software-grid', icon: ExternalLink },
-  { label: 'Prototype Demo', path: '/prototype', icon: FlaskConical },
-  { label: 'Presentations', path: '/presentations', icon: FileText },
-  { label: 'Version History', path: '/versions', icon: GitBranch },
-  { label: 'Team', path: '/team', icon: Users },
+const DEFAULT_TEAM: TeamMember[] = [
+  {
+    id: 'T-001',
+    name: 'Aryan Sharma',
+    role: 'Frontend Lead',
+    focus: 'UI/UX architecture, responsive design system, tactile component library, and interactive presentations.',
+    avatar: 'AS',
+    skills: 'React, TypeScript, Tailwind, Recharts',
+    color: '#FFE8ED',
+    badgeColor: '#F52F4F',
+  },
+  {
+    id: 'T-002',
+    name: 'Aniket Raj',
+    role: 'Backend Lead',
+    focus: 'Express API development, database persistence, S3/Supabase storage integrations, and permanent version publishing engine.',
+    avatar: 'AR',
+    skills: 'Node.js, Express, SQLite, S3, REST APIs',
+    color: '#E0F5EE',
+    badgeColor: '#059669',
+  },
+  {
+    id: 'T-003',
+    name: 'Amitesh Kumar Singh',
+    role: 'AI / CV Engineer',
+    focus: 'Handwriting segmentation pipeline, CNN-Transformer feature models, and doctor-adaptive calibration loops.',
+    avatar: 'AK',
+    skills: 'Python, PyTorch, Computer Vision, OCR, CNN-Transformers',
+    color: '#FFF0C8',
+    badgeColor: '#D97706',
+  },
+  {
+    id: 'T-004',
+    name: 'Chirag Lamba',
+    role: 'Integration Lead',
+    focus: 'Formulary SKU matching algorithms, security audit controls, end-to-end reliability verification, and CI/CD pipelines.',
+    avatar: 'CL',
+    skills: 'CI/CD, GitHub Actions, System Integration, Testing, Security Audit',
+    color: '#F3E8FC',
+    badgeColor: '#9333EA',
+  },
 ];
 
 export default function HomePage() {
-  const [team, setTeam] = useState<TeamMember[]>([]);
-  const [teamLoaded, setTeamLoaded] = useState(false);
-  const { sections, loading, updateSection } = useEditableContent('home');
+  const [team, setTeam] = useState(DEFAULT_TEAM);
 
-  const workflowSteps = sections.workflow_steps || [];
-  const keyPoints = sections.key_points || [];
-  const statusCards = sections.status_cards || [];
+  const homeRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const phoneSectionRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.get<{ members: TeamMember[] }>('/team')
-      .then((data) => setTeam(data.members))
-      .catch(() => {})
-      .finally(() => setTeamLoaded(true));
+    const loadTeam = () => {
+      const cached = localStorage.getItem('pharmacon_team_members');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed.length > 0) {
+            setTeam(parsed.map((m: any, i: number) => ({
+              ...m,
+              color: DEFAULT_TEAM[i % 4].color,
+              badgeColor: DEFAULT_TEAM[i % 4].badgeColor,
+            })));
+          }
+        } catch (e) {}
+      }
+
+      api.get<{ members: TeamMember[] }>('/team')
+        .then((data) => {
+          if (data.members && data.members.length > 0) {
+            const currentCache = localStorage.getItem('pharmacon_team_members');
+            let baseList = data.members;
+            if (currentCache) {
+              try {
+                const localList = JSON.parse(currentCache);
+                baseList = data.members.map((serverM) => {
+                  const localM = localList.find((l: any) => l.id === serverM.id);
+                  return localM ? { ...serverM, ...localM } : serverM;
+                });
+              } catch (e) {}
+            }
+            setTeam(baseList.map((m: any, i: number) => ({
+              ...m,
+              color: DEFAULT_TEAM[i % 4].color,
+              badgeColor: DEFAULT_TEAM[i % 4].badgeColor,
+            })));
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadTeam();
+    window.addEventListener('pharmacon_team_updated', loadTeam);
+    return () => window.removeEventListener('pharmacon_team_updated', loadTeam);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="page-container flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
-      </div>
-    );
-  }
+  // Motion Choreography Initialization
+  useEffect(() => {
+    initHeroEntrance(heroRef.current);
+    initPhoneScrollShowcase(phoneSectionRef.current);
+    initLayerStackSeparation(layerRef.current);
+    initEditorialReveals(homeRef.current);
+  }, []);
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <div className="page-container py-16 lg:py-24">
-        <div className="max-w-2xl animate-in">
-          <div className="prototype-banner mb-6">
-            <Info className="w-3.5 h-3.5" />
-            <span>Proposed System · Prototype Stage</span>
+    <div ref={homeRef} className="space-y-20 sm:space-y-32 pb-0 overflow-hidden">
+      {/* ─── 1. Hero Section ────────────────────────────────────────────── */}
+      <section
+        ref={heroRef}
+        className="pt-6 sm:pt-10 px-4 max-w-5xl mx-auto text-center space-y-6 sm:space-y-8"
+      >
+        {/* Cute Medicine Pill Mascot Icon */}
+        <div data-anim="hero-mascot" className="flex justify-center">
+          <div className="relative w-20 h-20 rounded-full bg-[#F52F4F] border-[3px] border-[#351027] flex items-center justify-center shadow-tactile transform hover:scale-105 transition-transform">
+            <MedicinePillMascot size={50} mood="happy" sparkles={true} />
           </div>
-          
-          <h1 className="text-3xl lg:text-[2.5rem] font-semibold text-slate-900 leading-tight tracking-tight mb-4">
-            Connecting Handwritten Prescriptions to Connected Care
-          </h1>
-          
-          <p className="text-base lg:text-lg text-slate-500 leading-relaxed mb-8 max-w-xl">
-            A proposed platform for digitising handwritten prescriptions and connecting clinics, 
-            pharmacies and patients through a verified digital workflow.
+        </div>
+
+        {/* Introducing Pill Tag */}
+        <div data-anim="hero-badge">
+          <span className="pill-tag-dark uppercase tracking-wider px-5 py-2">
+            Connected Healthcare Intelligence
+          </span>
+        </div>
+
+        {/* Massive Chunky 2-Line Heading */}
+        <h1
+          data-anim="hero-title"
+          className="heading-chunky text-4xl sm:text-6xl lg:text-7xl max-w-4xl mx-auto"
+        >
+          Finally, Really <br className="hidden sm:inline" />
+          Intelligent Healthcare
+        </h1>
+
+        {/* Editorial Subtitle Paragraph */}
+        <p
+          data-anim="hero-subtitle"
+          className="text-base sm:text-xl text-[#351027]/80 max-w-2xl mx-auto leading-relaxed font-medium"
+        >
+          Subscription-based predictive healthcare connecting handwritten prescriptions to verified care, because disconnected paper records are out of touch, out of date, and out of time.
+        </p>
+
+        {/* ─── Large Product Triple-Phone Showcase ────────────────────────── */}
+        <div ref={phoneSectionRef}>
+          <PhoneShowcase />
+        </div>
+      </section>
+
+      {/* Layered Section Divider */}
+      <SectionDivider variant="pink-stepped" />
+
+      {/* ─── 2. Section: Disconnected Prescriptions & Connector Diagram ──── */}
+      <section data-anim-section className="px-4 sm:px-8 max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        <div className="space-y-5 text-left">
+          <span data-anim-badge className="pill-tag">Subscriptions, not premiums</span>
+          <h2 data-anim-heading className="heading-chunky text-4xl sm:text-5xl">
+            The end of Disconnected <br />
+            Medical Prescriptions?
+          </h2>
+          <p data-anim-paragraph className="text-base sm:text-lg text-[#351027]/80 leading-relaxed font-medium">
+            Paper prescriptions are decades out of date, error-prone, and delay patient recovery. We’re building the intelligent prescription verification network that keeps clinics, pharmacists, and patients completely in sync.
           </p>
-          
-          <div className="flex flex-wrap gap-3">
-            <Link to="/prototype" className="btn-primary gap-2">
-              <FlaskConical className="w-4 h-4" />
-              Explore Prototype
+        </div>
+
+        {/* Central Pill Node & Connector Diagram */}
+        <ConnectorDiagram />
+      </section>
+
+      {/* Layered Section Divider */}
+      <SectionDivider variant="burgundy-stepped" />
+
+      {/* ─── 3. Section: Caring About You & Profile Cards ───────────────── */}
+      <section data-anim-section className="px-4 sm:px-8 max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        {/* Left: Floating Profile Infographic Cards */}
+        <ProfileCards />
+
+        {/* Right: Editorial Copy */}
+        <div className="space-y-5 text-left">
+          <span data-anim-badge className="pill-tag-gold">Connected Intelligence</span>
+          <h2 data-anim-heading className="heading-chunky text-4xl sm:text-5xl">
+            Caring about you, <br />
+            before you need it.
+          </h2>
+          <p data-anim-paragraph className="text-base sm:text-lg text-[#351027]/80 leading-relaxed font-medium">
+            Traditional pharmacy workflows react only after you stand in line with a paper slip. Pharmacon continuously syncs digitized doctor orders, cross-references formulary inventories, and predicts refill timings automatically.
+          </p>
+
+          <div className="pt-2">
+            <Link to="/presentation/v1" className="btn-tactile btn-tactile-dark">
+              <span className="btn-tactile-inner py-2 px-6 text-xs font-display font-extrabold flex items-center gap-2">
+                <span>EXPLORE PLANNING V1</span>
+                <ArrowRight className="w-4 h-4" />
+              </span>
             </Link>
-            <Link to="/project" className="btn-secondary gap-2">
-              <FileText className="w-4 h-4" />
-              View Project
-            </Link>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Current Status */}
-      <div className="border-t border-slate-100 bg-slate-50/50">
-        <div className="page-container py-12">
-          <EditableSection
-            items={statusCards}
-            fields={[
-              { key: 'label', label: 'Label/Icon', type: 'text' },
-              { key: 'title', label: 'Title', type: 'text' },
-              { key: 'subtitle', label: 'Subtitle', type: 'text' },
-            ]}
-            onSave={(items) => updateSection('status_cards', items)}
-          >
-            <div className="text-center mb-8 animate-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Current Status</h2>
-              <p className="text-sm text-slate-500">Project phase and recent progress</p>
-            </div>
+      {/* Layered Section Divider */}
+      <SectionDivider variant="pink-stepped" />
 
-            <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto animate-in-delay-1">
-              {statusCards.map((card: any, i: number) => (
-                <div key={i} className="card p-5 text-center">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-3">
-                    <span className="text-lg font-semibold text-emerald-600">{card.label === 'prototype' ? '🧪' : card.label === 'evaluation' ? 'ℹ️' : card.label}</span>
-                  </div>
-                  <div className="text-sm font-semibold text-slate-800">{card.title}</div>
-                  <div className="text-xs text-slate-500 mt-1">{card.subtitle}</div>
-                </div>
-              ))}
-            </div>
-          </EditableSection>
+      {/* ─── 4. Section: Stacked Physical Cards & Architecture Stack ─────── */}
+      <section ref={layerRef} data-anim-section className="px-4 sm:px-8 max-w-6xl mx-auto space-y-12">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <span data-anim-badge className="pill-tag-dark">System Architecture</span>
+          <h2 data-anim-heading className="heading-chunky text-4xl sm:text-5xl">
+            Built on a Modern, Connected Foundation
+          </h2>
+          <p data-anim-paragraph className="text-sm sm:text-base text-[#351027]/70 font-medium">
+            A secure full-stack platform uniting real-time doctor calibration, automated digitisation, and public immutable deliverable archives.
+          </p>
         </div>
-      </div>
 
-      {/* Team */}
-      <div className="border-t border-slate-100">
-        <div className="page-container py-12">
-          <div className="text-center mb-8 animate-in">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Meet the Team</h2>
-            <p className="text-sm text-slate-500">The people behind Pharmacon</p>
+        {/* 4 Feature Layer Cards */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+          <div data-anim="layer-card" className="card-tactile p-6 space-y-3 bg-[#FFE8ED] border-2 border-[#351027]">
+            <div className="w-10 h-10 rounded-2xl bg-[#F52F4F] border-2 border-[#351027] flex items-center justify-center text-white shadow-tactile-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="font-display font-extrabold text-lg text-[#351027]">1. Adaptive OCR</h3>
+            <p className="text-xs text-[#351027]/70 font-medium leading-relaxed">
+              Ensemble CNN-Transformer trained with 3-sheet writer adaptation per practitioner for handwriting accuracy.
+            </p>
           </div>
 
-          {teamLoaded ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-              {team.map((member, i) => (
-                <div key={member.id} className="card-hover p-5 text-center animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
-                  {member.avatar_filename ? <img src={`/uploads/${member.avatar_filename}`} className="w-12 h-12 rounded-full object-cover mx-auto mb-3 border border-slate-200" alt={`${member.name}'s profile`} /> : <div className="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-3 text-sm font-semibold text-primary-600">{member.avatar}</div>}
-                  <div className="text-sm font-medium text-slate-800">{member.name}</div>
-                  <div className="text-xs text-primary-600 font-medium mt-0.5">{member.role}</div>
-                  <div className="text-xs text-slate-500 mt-2 leading-relaxed">{member.focus}</div>
-                  {(member.github_url || member.linkedin_url) && (
-                    <div className="flex items-center justify-center gap-2 mt-3">
-                      {member.github_url && (
-                        <a href={member.github_url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">GitHub</a>
-                      )}
-                      {member.linkedin_url && (
-                        <a href={member.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">LinkedIn</a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+          <div data-anim="layer-card" className="card-tactile p-6 space-y-3 bg-[#E0F5EE] border-2 border-[#351027]">
+            <div className="w-10 h-10 rounded-2xl bg-[#059669] border-2 border-[#351027] flex items-center justify-center text-white shadow-tactile-sm">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-          ) : (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Links */}
-      <div className="border-t border-slate-100 bg-slate-50/50">
-        <div className="page-container py-12">
-          <div className="text-center mb-8 animate-in">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Quick Links</h2>
-            <p className="text-sm text-slate-500">Navigate to key sections of the project</p>
+            <h3 className="font-display font-extrabold text-lg text-[#351027]">2. Human Review</h3>
+            <p className="text-xs text-[#351027]/70 font-medium leading-relaxed">
+              Confidence threshold routing flags uncertain dosage fields directly to pharmacist verification queues.
+            </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl mx-auto">
-            {quickLinks.map((link, i) => (
-              <Link
-                key={i}
-                to={link.path}
-                className="card-hover p-4 flex items-center gap-3 animate-in"
-                style={{ animationDelay: `${i * 0.04}s` }}
-              >
-                <link.icon className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                <span className="text-sm font-medium text-slate-700">{link.label}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 ml-auto" />
-              </Link>
-            ))}
+          <div data-anim="layer-card" className="card-tactile p-6 space-y-3 bg-[#FFF0C8] border-2 border-[#351027]">
+            <div className="w-10 h-10 rounded-2xl bg-[#D97706] border-2 border-[#351027] flex items-center justify-center text-white shadow-tactile-sm">
+              <Database className="w-5 h-5" />
+            </div>
+            <h3 className="font-display font-extrabold text-lg text-[#351027]">3. Cloud Sync</h3>
+            <p className="text-xs text-[#351027]/70 font-medium leading-relaxed">
+              Hybrid SQLite local node paired with Supabase PostgreSQL and S3 cloud storage for public deliverable hosting.
+            </p>
           </div>
-        </div>
-      </div>
 
-      {/* Workflow */}
-      <div className="border-t border-slate-100">
-        <div className="page-container py-16">
-          <EditableSection
-            items={workflowSteps}
-            fields={[
-              { key: 'label', label: 'Step Name', type: 'text' },
-              { key: 'desc', label: 'Description', type: 'text' },
-            ]}
-            onSave={(items) => updateSection('workflow_steps', items)}
-          >
-            <div className="text-center mb-10 animate-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Proposed Workflow</h2>
-              <p className="text-sm text-slate-500">End-to-end prescription digitisation pipeline</p>
+          <div data-anim="layer-card" className="card-tactile p-6 space-y-3 bg-[#F3E8FC] border-2 border-[#351027]">
+            <div className="w-10 h-10 rounded-2xl bg-[#9333EA] border-2 border-[#351027] flex items-center justify-center text-white shadow-tactile-sm">
+              <Layers className="w-5 h-5" />
             </div>
-
-            <div className="max-w-md mx-auto space-y-0">
-              {workflowSteps.map((step: any, i: number) => (
-                <div key={i} className="animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
-                  <div className="workflow-step">
-                    <div className="w-8 h-8 rounded-md bg-primary-50 flex items-center justify-center text-primary-600 text-sm font-semibold flex-shrink-0">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-slate-800">{step.label}</div>
-                      <div className="text-xs text-slate-500">{step.desc}</div>
-                    </div>
-                  </div>
-                  {i < workflowSteps.length - 1 && (
-                    <div className="workflow-arrow py-1.5">
-                      <ArrowDown className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </EditableSection>
-        </div>
-      </div>
-
-      {/* Key points */}
-      <div className="border-t border-slate-100 bg-slate-50/50">
-        <div className="page-container py-16">
-          <EditableSection
-            items={keyPoints}
-            fields={[
-              { key: 'title', label: 'Title', type: 'text' },
-              { key: 'desc', label: 'Description', type: 'textarea' },
-            ]}
-            onSave={(items) => updateSection('key_points', items)}
-          >
-            <div className="grid md:grid-cols-3 gap-6">
-              {keyPoints.map((item: any, i: number) => (
-                <div key={i} className="card p-5 animate-in" style={{ animationDelay: `${i * 0.06}s` }}>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </EditableSection>
-        </div>
-      </div>
-
-      {/* Safety */}
-      <div className="border-t border-slate-100">
-        <div className="page-container py-8">
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex gap-3 items-start">
-            <Info className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Pharmacon is intended to digitise and connect confirmed prescriptions. It does not diagnose conditions, 
-              recommend medicines, substitute medicines, change dosages, or override professional clinical judgement.
+            <h3 className="font-display font-extrabold text-lg text-[#351027]">4. Version Control</h3>
+            <p className="text-xs text-[#351027]/70 font-medium leading-relaxed">
+              Automated version promotion archives previous decks while maintaining permanent deliverable histories.
             </p>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Layered Section Divider */}
+      <SectionDivider variant="burgundy-stepped" />
+
+      {/* ─── 5. Section: Team Pharmacon ─────────────────────────────────── */}
+      <section data-anim-section className="px-4 sm:px-8 max-w-6xl mx-auto space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span data-anim-badge className="pill-tag-pink">Core Team</span>
+            <h2 data-anim-heading className="heading-chunky text-3xl sm:text-4xl mt-2">
+              Meet the Engineers
+            </h2>
+          </div>
+          <Link to="/team" className="btn-tactile btn-tactile-white">
+            <span className="btn-tactile-inner py-1.5 px-4 text-xs font-extrabold flex items-center gap-1.5">
+              <span>View Full Team & Admin Edit</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#F52F4F]" />
+            </span>
+          </Link>
+        </div>
+
+        {/* Team Cards Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+          {team.map((member) => {
+            const isPhoto = member.avatar && (member.avatar.startsWith('data:image') || member.avatar.startsWith('http'));
+            return (
+              <div
+                key={member.id}
+                data-anim-card
+                className="card-tactile p-6 space-y-4 flex flex-col justify-between hover:-translate-y-1 transition-transform"
+                style={{ backgroundColor: member.color || '#FFFFFF' }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    {isPhoto ? (
+                      <img
+                        src={member.avatar}
+                        alt={member.name}
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-[3px] border-[#351027] shadow-tactile bg-white"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white border-[3px] border-[#351027] flex items-center justify-center font-display font-black text-xl text-[#351027] shadow-tactile">
+                        {member.avatar}
+                      </div>
+                    )}
+                    <span
+                      className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full text-white border border-[#351027] shadow-tactile-sm"
+                      style={{ backgroundColor: member.badgeColor || '#F52F4F' }}
+                    >
+                      {member.role}
+                    </span>
+                  </div>
+
+                  <h3 className="font-display font-extrabold text-lg text-[#351027]">
+                    {member.name}
+                  </h3>
+                  <p className="text-xs text-[#351027]/80 font-medium leading-relaxed mt-2">
+                    {member.focus}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-[#351027]/10 flex items-center justify-between">
+                  <Link
+                    to="/team"
+                    className="text-[11px] font-bold text-[#F52F4F] hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Edit Profile</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ─── 6. Large Red CTA Section with Stepped Header and Phone Rise ─── */}
+      <CTASection />
     </div>
   );
 }

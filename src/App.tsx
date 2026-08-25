@@ -1,7 +1,11 @@
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
+import PlanningPresentationV1Page from './pages/PlanningPresentationV1Page';
+import PlanningPresentationV2Page from './pages/PlanningPresentationV2Page';
+import AdminPublishPage from './pages/AdminPublishPage';
 import ProjectPage from './pages/ProjectPage';
 import ProblemUsersPage from './pages/ProblemUsersPage';
 import ProposedSystemPage from './pages/ProposedSystemPage';
@@ -26,13 +30,23 @@ import PatientDashboard from './pages/dashboards/PatientDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import RoadmapPage from './pages/RoadmapPage';
 
+import { useSmoothScroll } from './animations/useSmoothScroll';
+
 function AppLayout() {
+  useSmoothScroll();
+
   return (
-    <div className="flex min-h-screen bg-white">
-      <Sidebar />
-      <main className="flex-1 min-w-0 overflow-y-auto">
+    <div className="min-h-screen bg-[#FFF8E8] text-[#351027] flex flex-col justify-between selection:bg-[#F52F4F] selection:text-[#FFF8E8] antialiased">
+      {/* Sticky Top Navbar */}
+      <Navbar />
+
+      {/* Main Content Area */}
+      <main className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/presentation/v1" element={<PlanningPresentationV1Page />} />
+          <Route path="/presentation/v2" element={<PlanningPresentationV2Page />} />
+          <Route path="/admin/publish" element={<AdminPublishPage />} />
           <Route path="/project" element={<ProjectPage />} />
           <Route path="/problem-users" element={<ProblemUsersPage />} />
           <Route path="/proposed-system" element={<ProposedSystemPage />} />
@@ -56,6 +70,7 @@ function AppLayout() {
           <Route path="/dashboard/pharmacy" element={<PharmacyDashboard />} />
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
+          <Route path="*" element={<HomePage />} />
         </Routes>
       </main>
     </div>

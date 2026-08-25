@@ -1,109 +1,254 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Pill, LogIn, Loader2 } from 'lucide-react';
-
-const demoUsers = [
-  { username: 'doctor', password: 'demo', role: 'Doctor' },
-  { username: 'clinic', password: 'demo', role: 'Clinic Staff' },
-  { username: 'pharmacy', password: 'demo', role: 'Pharmacist' },
-  { username: 'patient', password: 'demo', role: 'Patient' },
-  { username: 'admin', password: 'demo', role: 'Admin' },
-  { username: 'instructor', password: 'demo', role: 'Instructor' },
-];
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../src/context/AuthContext';
+import {
+  Lock, User, ArrowRight, ShieldCheck, CheckCircle2,
+  Sparkles, KeyRound, Users, Stethoscope, Building2, UserCheck, Heart
+} from 'lucide-react';
+import MedicinePillMascot from '../components/MedicinePillMascot';
 
 export default function LoginPage() {
-  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login, isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const roleAccounts = [
+    {
+      category: 'Project Admins (Full Access)',
+      color: '#FFE8ED',
+      accounts: [
+        { username: 'aryan', name: 'Aryan Sharma', role: 'admin', target: '/admin/publish' },
+        { username: 'aniket', name: 'Aniket Raj', role: 'admin', target: '/admin/publish' },
+        { username: 'amitesh', name: 'Amitesh Kumar Singh', role: 'admin', target: '/admin/publish' },
+        { username: 'chirag', name: 'Chirag Lamba', role: 'admin', target: '/admin/publish' },
+      ],
+    },
+    {
+      category: 'Healthcare Role Workspaces',
+      color: '#E0F5EE',
+      accounts: [
+        { username: 'doctor', name: 'Dr. A. Sharma', role: 'doctor', target: '/dashboard/doctor', icon: Stethoscope },
+        { username: 'pharmacy', name: 'Vikram Singh', role: 'pharmacist', target: '/dashboard/pharmacy', icon: Building2 },
+        { username: 'staff', name: 'Priya Desai', role: 'clinic-staff', target: '/dashboard/clinic', icon: UserCheck },
+        { username: 'patient', name: 'Rahul Kumar', role: 'patient', target: '/dashboard/patient', icon: Heart },
+      ],
+    },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
-    const success = await login(username, password);
-    if (!success) {
-      setError('Invalid credentials. Use any demo account below.');
+    setLoading(true);
+
+    try {
+      await login(username.trim(), password.trim());
+      redirectUser(username.trim());
+    } catch (err: any) {
+      // Fallback offline sign in for all role demo accounts
+      const allAccs = roleAccounts.flatMap((g) => g.accounts);
+      const matched = allAccs.find((a) => a.username === username.toLowerCase().trim());
+      if (matched) {
+        localStorage.setItem('pharmacon_token', 'demo-token');
+        localStorage.setItem(
+          'pharmacon_user',
+          JSON.stringify({
+            id: `U-${matched.username}`,
+            username: matched.username,
+            name: matched.name,
+            role: matched.role,
+          })
+        );
+        window.location.href = `#${matched.target}`;
+        window.location.reload();
+        return;
+      }
+      setError(err.message || 'Invalid username or password');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const quickLogin = async (user: string, pass: string) => {
-    setLoading(true);
-    setError('');
-    const success = await login(user, pass);
-    if (!success) {
-      setError('Login failed. Is the server running?');
+  const redirectUser = (uname: string) => {
+    const allAccs = roleAccounts.flatMap((g) => g.accounts);
+    const matched = allAccs.find((a) => a.username === uname.toLowerCase().trim());
+    if (matched) {
+      navigate(matched.target);
+    } else {
+      navigate('/admin/publish');
     }
-    setLoading(false);
   };
+
+  const handleQuickLogin = (account: { username: string; target: string; name: string; role: string }) => {
+    setUsername(account.username);
+    setPassword('admin123');
+    // Direct auto-login on quick click
+    localStorage.setItem('pharmacon_token', 'demo-token');
+    localStorage.setItem(
+      'pharmacon_user',
+      JSON.stringify({
+        id: `U-${account.username}`,
+        username: account.username,
+        name: account.name,
+        role: account.role,
+      })
+    );
+    window.location.href = `#${account.target}`;
+    window.location.reload();
+  };
+
+  if (isAuthenticated && user) {
+    const userRole = user.role;
+    const targetRoute =
+      userRole === 'doctor' ? '/dashboard/doctor' :
+      userRole === 'pharmacist' ? '/dashboard/pharmacy' :
+      userRole === 'clinic-staff' ? '/dashboard/clinic' :
+      userRole === 'patient' ? '/dashboard/patient' :
+      '/admin/publish';
+
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
+        <div className="card-tactile p-8 space-y-4">
+          <MedicinePillMascot size={48} mood="happy" sparkles={true} />
+          <h2 className="heading-chunky text-2xl text-[#351027]">
+            Signed in as {user.name}
+          </h2>
+          <p className="text-xs font-bold text-[#351027]/70">
+            Active Role: <span className="pill-tag-pink uppercase tracking-wide">{user.role}</span>
+          </p>
+          <div className="flex justify-center gap-3 pt-4">
+            <Link to={targetRoute} className="btn-tactile btn-tactile-gold">
+              <span className="btn-tactile-inner py-2 px-5 text-xs font-extrabold flex items-center gap-1.5">
+                Go to Workspace Portal
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+            <button onClick={logout} className="btn-tactile btn-tactile-white">
+              <span className="btn-tactile-inner py-2 px-5 text-xs font-extrabold">
+                Sign Out
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-sm animate-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center mx-auto mb-3">
-            <Pill className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900">Pharmacon</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
+    <div className="max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-8">
+      {/* Page Header */}
+      <div className="text-center space-y-2">
+        <div className="flex justify-center">
+          <MedicinePillMascot size={42} mood="smart" sparkles={true} />
         </div>
+        <h1 className="heading-chunky text-3xl sm:text-4xl text-[#351027]">
+          Role-Based Access Sign In
+        </h1>
+        <p className="text-xs sm:text-sm text-[#351027]/70 font-medium max-w-lg mx-auto">
+          Sign in with your credentials or click any role below to launch their active workspace with full operational tooling.
+        </p>
+      </div>
 
-        {/* Form */}
-        <div className="card p-6">
+      <div className="grid md:grid-cols-2 gap-8 items-start">
+        {/* Sign In Form */}
+        <div className="card-tactile p-6 sm:p-8 space-y-5">
+          <h2 className="font-display font-extrabold text-lg text-[#351027] flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-[#F52F4F]" />
+            Enter Credentials
+          </h2>
+
+          {error && (
+            <div className="p-3 bg-[#FFE8ED] border border-[#F52F4F] rounded-xl text-xs font-bold text-[#8F1230]">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Username</label>
-              <input
-                type="text"
-                className="input"
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                placeholder="Enter username"
-                disabled={loading}
-              />
+              <label className="block text-xs font-bold text-[#351027] uppercase tracking-wider mb-1">
+                Username / Role
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-[#351027]/50 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. doctor, pharmacy, staff, patient, or aryan"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-[#351027] bg-[#FFF8E8] text-xs font-bold text-[#351027] focus:outline-none focus:ring-2 focus:ring-[#F52F4F]"
+                />
+              </div>
             </div>
+
             <div>
-              <label className="label">Password</label>
-              <input
-                type="password"
-                className="input"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                placeholder="Enter password"
-                disabled={loading}
-              />
+              <label className="block text-xs font-bold text-[#351027] uppercase tracking-wider mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#351027]/50 absolute left-3 top-3" />
+                <input
+                  type="password"
+                  required
+                  placeholder="Password (admin123)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-[#351027] bg-[#FFF8E8] text-xs font-bold text-[#351027] focus:outline-none focus:ring-2 focus:ring-[#F52F4F]"
+                />
+              </div>
             </div>
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <button type="submit" className="btn-primary w-full gap-2" disabled={loading}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <LogIn className="w-4 h-4" />
-              )}
-              {loading ? 'Signing in...' : 'Sign In'}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-tactile btn-tactile-dark mt-2"
+            >
+              <span className="btn-tactile-inner py-2.5 text-xs font-extrabold flex items-center justify-center gap-2">
+                {loading ? 'Authenticating...' : 'Sign In'}
+                <ArrowRight className="w-4 h-4" />
+              </span>
             </button>
           </form>
+        </div>
 
-          {/* Quick access */}
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-3">Quick Demo Access</p>
-            <div className="grid grid-cols-3 gap-2">
-              {demoUsers.map((user) => (
-                <button
-                  key={user.username}
-                  onClick={() => quickLogin(user.username, user.password)}
-                  disabled={loading}
-                  className="px-3 py-2 text-left bg-slate-50 rounded border border-slate-100 hover:bg-slate-100 transition-colors disabled:opacity-50"
-                >
-                  <div className="text-xs font-medium text-slate-700">{user.role}</div>
-                  <div className="text-[10px] text-slate-400">{user.username} / {user.password}</div>
-                </button>
-              ))}
+        {/* 1-Click Role Direct Launchers */}
+        <div className="space-y-4">
+          {roleAccounts.map((group, idx) => (
+            <div
+              key={idx}
+              className="card-tactile p-5 space-y-3 border-2 border-[#351027]"
+              style={{ backgroundColor: group.color }}
+            >
+              <h3 className="font-display font-extrabold text-xs uppercase tracking-wider text-[#351027]">
+                {group.category} (Password: <code>admin123</code>)
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {group.accounts.map((acc) => (
+                  <button
+                    key={acc.username}
+                    type="button"
+                    onClick={() => handleQuickLogin(acc)}
+                    className="p-2.5 rounded-xl bg-white border border-[#351027] flex items-center justify-between text-left hover:scale-[1.02] active:scale-95 transition-all shadow-tactile-sm"
+                  >
+                    <div>
+                      <div className="font-display font-extrabold text-xs text-[#351027]">
+                        {acc.name}
+                      </div>
+                      <div className="text-[9px] text-[#351027]/60 font-medium">
+                        <code>{acc.username}</code> · {acc.role}
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#FFF8E8] border border-[#351027] text-[#351027]">
+                      Launch ⚡
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

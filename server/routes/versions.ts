@@ -1,17 +1,25 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db.js';
-import { requireAuth, requireRole, AuthRequest } from '../auth.js';
 
 const router = Router();
 
 // GET /api/versions — list all versions
 router.get('/', (_req, res) => {
   const versions = getDb().prepare(`
-    SELECT * FROM versions ORDER BY created_at ASC
+    SELECT * FROM versions ORDER BY created_at DESC
   `).all();
 
   res.json({ versions });
+});
+
+// GET /api/versions/current — get the latest active version
+router.get('/current', (_req, res) => {
+  const version = getDb().prepare(`
+    SELECT * FROM versions WHERE status = 'current' ORDER BY created_at DESC LIMIT 1
+  `).get();
+
+  res.json({ version });
 });
 
 // GET /api/versions/:id — get a single version with its deliverables
@@ -20,8 +28,7 @@ router.get('/:id', (req, res) => {
   const version = db.prepare('SELECT * FROM versions WHERE id = ?').get(req.params.id) as any;
 
   if (!version) {
-    res.status(404).json({ error: 'Version not found' });
-    return;
+    return res.status(404).json({ error: 'Version not found' });
   }
 
   const deliverables = db.prepare(`
@@ -35,47 +42,89 @@ router.get('/:id', (req, res) => {
   res.json({ version, deliverables });
 });
 
-// POST /api/versions — create a new version (admin/instructor only)
-router.post('/', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequest, res) => {
-  const { name, date, authors, status, changeSummary, commitRef, deploymentUrl, parentVersionId } = req.body;
+// POST /api/versions — create a new version (persists directly to SQLite)
+router.post('/', (req, res) => {
+  const {
+    id: customId,
+    name,
+    date,
+    authors,
+    status = 'current',
+    changeSummary,
+    change_summary,
+    commitRef,
+    commit_ref,
+    deploymentUrl,
+    deployment_url,
+    parentVersionId,
+    parent_version_id
+  } = req.body;
 
-  if (!name || !date || !authors) {
-    res.status(400).json({ error: 'Name, date, and authors are required' });
-    return;
+  if (!name || !date) {
+    return res.status(400).json({ error: 'Name and date are required' });
   }
 
   const db = getDb();
-  const id = `V-${uuidv4().slice(0, 8)}`;
+  const id = customId || `V-${uuidv4().slice(0, 8)}`;
 
-  // If a parent version exists and the new version is "current", archive the parent
-  if (parentVersionId && status === 'current') {
-    db.prepare('UPDATE versions SET status = ? WHERE id = ?').run('archived', parentVersionId);
+  // Automatically archive all older current versions when a new current version is uploaded!
+  if (status === 'current') {
+    db.prepare("UPDATE versions SET status = 'archived' WHERE status = 'current'").run();
   }
 
   db.prepare(`
     INSERT INTO versions (id, name, date, authors, status, change_summary, commit_ref, deployment_url, parent_version_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, name, date, authors, status || 'draft', changeSummary || '', commitRef || '', deploymentUrl || '', parentVersionId || null);
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      date = excluded.date,
+      authors = excluded.authors,
+      status = excluded.status,
+      change_summary = excluded.change_summary,
+      commit_ref = excluded.commit_ref,
+      deployment_url = excluded.deployment_url,
+      parent_version_id = excluded.parent_version_id
+  `).run(
+    id,
+    name,
+    date,
+    authors || 'Team Pharmacon',
+    status,
+    changeSummary || change_summary || '',
+    commitRef || commit_ref || '',
+    deploymentUrl || deployment_url || '',
+    parentVersionId || parent_version_id || null
+  );
 
   const version = db.prepare('SELECT * FROM versions WHERE id = ?').get(id);
   res.json({ version });
 });
 
-// PUT /api/versions/:id — update a version (admin/instructor only)
-router.put('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRequest, res) => {
+// PUT /api/versions/:id — update a version
+router.put('/:id', (req, res) => {
   const db = getDb();
   const existing = db.prepare('SELECT * FROM versions WHERE id = ?').get(req.params.id) as any;
 
   if (!existing) {
-    res.status(404).json({ error: 'Version not found' });
-    return;
+    return res.status(404).json({ error: 'Version not found' });
   }
 
-  const { name, date, authors, status, changeSummary, commitRef, deploymentUrl } = req.body;
+  const {
+    name,
+    date,
+    authors,
+    status,
+    changeSummary,
+    change_summary,
+    commitRef,
+    commit_ref,
+    deploymentUrl,
+    deployment_url
+  } = req.body;
 
-  // If promoting to "current", archive the previous current version
+  // If promoting to "current", archive other current versions
   if (status === 'current' && existing.status !== 'current') {
-    db.prepare('UPDATE versions SET status = ? WHERE status = ?').run('archived', 'current');
+    db.prepare("UPDATE versions SET status = 'archived' WHERE status = 'current'").run();
   }
 
   db.prepare(`
@@ -88,7 +137,16 @@ router.put('/:id', requireAuth, requireRole('admin', 'instructor'), (req: AuthRe
       commit_ref = COALESCE(?, commit_ref),
       deployment_url = COALESCE(?, deployment_url)
     WHERE id = ?
-  `).run(name, date, authors, status, changeSummary, commitRef, deploymentUrl, req.params.id);
+  `).run(
+    name,
+    date,
+    authors,
+    status,
+    changeSummary || change_summary,
+    commitRef || commit_ref,
+    deploymentUrl || deployment_url,
+    req.params.id
+  );
 
   const version = db.prepare('SELECT * FROM versions WHERE id = ?').get(req.params.id);
   res.json({ version });

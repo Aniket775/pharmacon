@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import VersionTimeline from '../components/VersionTimeline';
-import { GitBranch, Plus, Loader2, X } from 'lucide-react';
+import { GitBranch, Plus, Loader2, X, ArrowRight, ShieldCheck } from 'lucide-react';
+import MedicinePillMascot from '../components/MedicinePillMascot';
 
 interface Version {
   id: string;
@@ -24,7 +26,7 @@ export default function VersionsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
-    name: '', date: '', authors: 'Team', status: 'draft',
+    name: '', date: '', authors: 'Aryan Sharma, Aniket Raj, Amitesh Kumar Singh, Chirag Lamba', status: 'current',
     changeSummary: '', commitRef: '', deploymentUrl: '', parentVersionId: '',
   });
 
@@ -41,7 +43,7 @@ export default function VersionsPage() {
       const result = await api.post<{ version: Version }>('/versions', form);
       setVersions((prev) => [...prev, result.version]);
       setShowCreate(false);
-      setForm({ name: '', date: '', authors: 'Team', status: 'draft', changeSummary: '', commitRef: '', deploymentUrl: '', parentVersionId: '' });
+      setForm({ name: '', date: '', authors: 'Team Pharmacon', status: 'current', changeSummary: '', commitRef: '', deploymentUrl: '', parentVersionId: '' });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -51,142 +53,95 @@ export default function VersionsPage() {
 
   if (loading) {
     return (
-      <div className="page-container flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      <div className="max-w-6xl mx-auto px-4 py-20 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-[#F52F4F] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="page-container">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
-        <h1 className="page-title">Version History</h1>
-        {isAdmin && (
-          <button onClick={() => setShowCreate(!showCreate)} className="btn-secondary gap-2 text-xs">
-            {showCreate ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {showCreate ? 'Cancel' : 'New Version'}
-          </button>
-        )}
+    <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b-2 border-[#351027]">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <MedicinePillMascot size={28} mood="smart" />
+            <span className="pill-tag-pink">Project Version Control</span>
+            <span className="pill-tag">Immutable Releases</span>
+          </div>
+          <h1 className="heading-chunky text-2xl sm:text-4xl text-[#351027]">
+            Version History & Deliverable Archive
+          </h1>
+          <p className="text-xs sm:text-sm text-[#351027]/70 mt-1 font-medium">
+            All historical presentation releases and packages remain permanently accessible. Older deliverables are never overwritten.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link to="/admin/publish" className="btn-tactile btn-tactile-gold">
+            <span className="btn-tactile-inner py-1.5 px-4 text-xs font-extrabold flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" />
+              Publish New Version
+            </span>
+          </Link>
+        </div>
       </div>
-      <p className="page-subtitle">All versions remain accessible. Creating a new version archives the previous one.</p>
 
-      <div className="max-w-3xl space-y-8">
-        {/* Create form */}
-        {showCreate && (
-          <section className="animate-in">
-            <h2 className="section-heading">Create New Version</h2>
-            <div className="card p-5 space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Version Name</label>
-                  <input type="text" className="input" placeholder="e.g., Planning V2" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">Date</label>
-                  <input type="date" className="input" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">Authors</label>
-                  <input type="text" className="input" placeholder="Team" value={form.authors} onChange={e => setForm({...form, authors: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">Status</label>
-                  <select className="select" value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
-                    <option value="draft">Draft</option>
-                    <option value="current">Current</option>
-                    <option value="future">Future</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="label">Change Summary</label>
-                <textarea className="input" rows={3} placeholder="What changed in this version..." value={form.changeSummary} onChange={e => setForm({...form, changeSummary: e.target.value})} />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Commit Reference (URL)</label>
-                  <input type="url" className="input" placeholder="https://github.com/..." value={form.commitRef} onChange={e => setForm({...form, commitRef: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">Deployment URL</label>
-                  <input type="url" className="input" placeholder="https://..." value={form.deploymentUrl} onChange={e => setForm({...form, deploymentUrl: e.target.value})} />
-                </div>
-              </div>
-              <div>
-                <label className="label">Parent Version</label>
-                <select className="select" value={form.parentVersionId} onChange={e => setForm({...form, parentVersionId: e.target.value})}>
-                  <option value="">None</option>
-                  {versions.map(v => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
-                <button onClick={createVersion} disabled={creating || !form.name || !form.date} className="btn-primary gap-2">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {creating ? 'Creating...' : 'Create Version'}
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
+      {/* Main List and Details */}
+      <div className="max-w-4xl space-y-8">
         {/* Timeline */}
-        <section className="animate-in">
+        <div className="card-tactile p-6 space-y-4">
+          <h3 className="font-display font-extrabold text-base text-[#351027] mb-2">
+            Chronological Deliverable Releases
+          </h3>
           <VersionTimeline
             versions={versions}
             selectedId={selectedId}
             onSelect={(v) => setSelectedId(v.id === selectedId ? undefined : v.id)}
           />
-        </section>
+        </div>
 
-        {/* Detail panel */}
+        {/* Selected Version Detail */}
         {selectedId && (() => {
           const v = versions.find(ver => ver.id === selectedId);
           if (!v) return null;
           return (
-            <section className="animate-in">
-              <h2 className="section-heading">Version Detail: {v.name}</h2>
-              <div className="card p-5">
-                <div className="grid sm:grid-cols-2 gap-4 text-sm mb-4">
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">Version</div>
-                    <div className="text-slate-700 font-medium">{v.name}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">Date</div>
-                    <div className="text-slate-700">{v.date}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">Authors</div>
-                    <div className="text-slate-700">{v.authors}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">Status</div>
-                    <div className="text-slate-700 capitalize">{v.status}</div>
-                  </div>
+            <section className="card-tactile p-6 space-y-4 bg-[#FFE8ED] border-2 border-[#351027]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#351027]/10">
+                <h3 className="font-display font-extrabold text-base text-[#8F1230]">
+                  Version Detail: {v.name}
+                </h3>
+                <span className="pill-tag-dark text-[10px]">{v.status}</span>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <div className="text-[10px] text-[#351027]/50 uppercase font-bold">Release Date</div>
+                  <div className="font-bold text-[#351027]">{v.date}</div>
                 </div>
-                {v.change_summary && (
-                  <div className="border-t border-slate-100 pt-3 mt-3">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">What Changed</div>
-                    <p className="text-sm text-slate-600 leading-relaxed">{v.change_summary}</p>
-                  </div>
-                )}
-                {(v.commit_ref || v.deployment_url) && (
-                  <div className="border-t border-slate-100 pt-3 mt-3 flex gap-4">
-                    {v.commit_ref && (
-                      <a href={v.commit_ref} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
-                        View Commit →
-                      </a>
-                    )}
-                    {v.deployment_url && (
-                      <a href={v.deployment_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
-                        View Deployment →
-                      </a>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <div className="text-[10px] text-[#351027]/50 uppercase font-bold">Authors</div>
+                  <div className="font-bold text-[#351027]">{v.authors}</div>
+                </div>
+              </div>
+
+              {v.change_summary && (
+                <div className="border-t border-[#351027]/10 pt-3">
+                  <div className="text-[10px] text-[#351027]/50 uppercase font-bold mb-1">What Changed</div>
+                  <p className="text-xs text-[#351027]/80 leading-relaxed font-medium">{v.change_summary}</p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Link
+                  to={v.id === 'v1' ? '/presentation/v1' : v.id === 'v2' ? '/presentation/v2' : `/deliverable/${v.id}`}
+                  className="btn-tactile btn-tactile-dark"
+                >
+                  <span className="btn-tactile-inner py-1.5 px-4 text-xs font-extrabold flex items-center gap-1.5">
+                    Launch Deliverable Page
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </Link>
               </div>
             </section>
           );

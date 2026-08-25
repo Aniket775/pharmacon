@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Eye, Loader2, ExternalLink, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import {
+  FileText, Eye, Loader2, ExternalLink, Plus, Pencil,
+  Trash2, X, Check, Download, Upload, Sparkles, FolderUp
+} from 'lucide-react';
+import MedicinePillMascot from '../components/MedicinePillMascot';
 
 interface Deck {
   id: string;
@@ -24,16 +28,6 @@ interface Deliverable {
   version_status: string | null;
 }
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'published': return 'badge-green';
-    case 'in-progress': return 'badge-yellow';
-    case 'draft': return 'badge-slate';
-    case 'archived': return 'badge-slate';
-    default: return 'badge-slate';
-  }
-}
-
 export default function PresentationsPage() {
   const { isAuthenticated } = useAuth();
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -45,6 +39,7 @@ export default function PresentationsPage() {
   const [deckDraft, setDeckDraft] = useState({ title: '', description: '', filePath: '' });
   const [addingDeck, setAddingDeck] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -52,8 +47,8 @@ export default function PresentationsPage() {
       api.get<{ deliverables: Deliverable[] }>('/deliverables'),
     ])
       .then(([deckData, delivData]) => {
-        setDecks(deckData.decks);
-        setDeliverables(delivData.deliverables);
+        setDecks(deckData.decks || []);
+        setDeliverables(delivData.deliverables || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -64,12 +59,19 @@ export default function PresentationsPage() {
     setDeckDraft({ title: deck.title, description: deck.description, filePath: deck.filePath });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setDeckDraft((prev) => ({ ...prev, filePath: url }));
+  };
+
   const saveDeck = async () => {
     if (!editingDeck) return;
     setSaving(true);
     try {
       await api.put(`/content/decks/${editingDeck}`, deckDraft);
-      setDecks((prev) => prev.map((d) => d.id === editingDeck ? { ...d, ...deckDraft } : d));
+      setDecks((prev) => prev.map((d) => (d.id === editingDeck ? { ...d, ...deckDraft } : d)));
       setEditingDeck(null);
     } finally {
       setSaving(false);
@@ -89,14 +91,15 @@ export default function PresentationsPage() {
   };
 
   const deleteDeck = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this presentation?')) return;
     await api.delete(`/content/decks/${id}`);
     setDecks((prev) => prev.filter((d) => d.id !== id));
   };
 
   if (loading) {
     return (
-      <div className="page-container flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      <div className="max-w-6xl mx-auto px-4 py-20 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-[#F52F4F] animate-spin" />
       </div>
     );
   }
@@ -115,170 +118,255 @@ export default function PresentationsPage() {
   });
 
   return (
-    <div className="page-container">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
-        <h1 className="page-title">Presentations & Deliverables</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b-2 border-[#351027]">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <MedicinePillMascot size={28} mood="smart" />
+            <span className="pill-tag-pink">Presentation Archive</span>
+            <span className="pill-tag">Live Deliverables</span>
+          </div>
+          <h1 className="heading-chunky text-2xl sm:text-4xl text-[#351027]">
+            Presentations & Project Deliverables
+          </h1>
+          <p className="text-xs sm:text-sm text-[#351027]/70 mt-1 font-medium">
+            Browse and download presentation decks, planning milestones, and permanent deliverable records.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link to="/admin/publish" className="btn-tactile btn-tactile-gold">
+            <span className="btn-tactile-inner py-1.5 px-4 text-xs font-extrabold flex items-center gap-1.5">
+              <FolderUp className="w-3.5 h-3.5" />
+              Upload New Deliverable
+            </span>
+          </Link>
+        </div>
       </div>
-      <p className="page-subtitle">Each deliverable has its own page with full detail and file attachments.</p>
 
       <div className="max-w-4xl space-y-8">
-        {/* Supplied Presentations — editable */}
-        <section className="animate-in">
-          <div className="flex items-center gap-2 group mb-3">
-            <h2 className="section-heading flex-1">Supplied Presentations</h2>
+        {/* Supplied Presentations Deck Section */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="heading-chunky text-xl text-[#351027]">
+              Presentation Pitch Decks
+            </h2>
             {isAuthenticated && !addingDeck && (
               <button
-                onClick={() => { setAddingDeck(true); setDeckDraft({ title: '', description: '', filePath: '' }); }}
-                className="edit-pencil-btn flex items-center gap-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setAddingDeck(true);
+                  setDeckDraft({ title: '', description: '', filePath: '' });
+                }}
+                className="btn-tactile btn-tactile-white"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <span className="btn-tactile-inner py-1 px-3 text-xs font-extrabold flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5 text-[#F52F4F]" />
+                  Add Pitch Deck
+                </span>
               </button>
             )}
           </div>
 
-          {/* Add new deck form */}
+          {/* Add New Deck Form */}
           {addingDeck && (
-            <div className="card p-4 mb-3 border-primary-200 bg-primary-50/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">New Presentation</span>
-                <div className="flex gap-1">
-                  <button onClick={() => setAddingDeck(false)} className="edit-action-btn text-slate-500 hover:text-slate-700"><X className="w-4 h-4" /></button>
-                  <button onClick={addDeck} disabled={saving || !deckDraft.title} className="edit-action-btn text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  </button>
-                </div>
+            <div className="card-tactile p-5 bg-[#FFE8ED] border-2 border-[#351027] space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#351027]/10">
+                <span className="text-xs font-display font-extrabold text-[#8F1230] uppercase">
+                  Add New Presentation File
+                </span>
+                <button onClick={() => setAddingDeck(false)} className="text-[#351027]">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <input type="text" placeholder="Title" value={deckDraft.title} onChange={(e) => setDeckDraft((d) => ({ ...d, title: e.target.value }))} className="editable-input" />
-              <textarea placeholder="Description" value={deckDraft.description} onChange={(e) => setDeckDraft((d) => ({ ...d, description: e.target.value }))} className="editable-textarea" rows={2} />
-              <input type="text" placeholder="File path (e.g. /presentations/file.pptx)" value={deckDraft.filePath} onChange={(e) => setDeckDraft((d) => ({ ...d, filePath: e.target.value }))} className="editable-input" />
+
+              <input
+                type="text"
+                placeholder="Presentation Title"
+                value={deckDraft.title}
+                onChange={(e) => setDeckDraft({ ...deckDraft, title: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-[#351027] text-xs font-bold"
+              />
+
+              <textarea
+                placeholder="Description / Topics covered"
+                value={deckDraft.description}
+                onChange={(e) => setDeckDraft({ ...deckDraft, description: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-[#351027] text-xs font-medium"
+                rows={2}
+              />
+
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  placeholder="File download path (or upload below)"
+                  value={deckDraft.filePath}
+                  onChange={(e) => setDeckDraft({ ...deckDraft, filePath: e.target.value })}
+                  className="flex-1 px-3 py-1.5 rounded-xl border border-[#351027] text-xs"
+                />
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-tactile btn-tactile-pink"
+                >
+                  <span className="btn-tactile-inner py-1.5 px-3 text-xs font-bold flex items-center gap-1">
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload
+                  </span>
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setAddingDeck(false)} className="btn-tactile btn-tactile-white">
+                  <span className="btn-tactile-inner py-1 px-3 text-xs font-bold">Cancel</span>
+                </button>
+                <button
+                  onClick={addDeck}
+                  disabled={saving || !deckDraft.title}
+                  className="btn-tactile btn-tactile-dark"
+                >
+                  <span className="btn-tactile-inner py-1 px-4 text-xs font-bold">
+                    {saving ? 'Saving...' : 'Add Deck'}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="grid sm:grid-cols-2 gap-3">
+          {/* Decks Grid */}
+          <div className="grid sm:grid-cols-2 gap-4">
             {decks.map((deck) => (
               editingDeck === deck.id ? (
-                <div key={deck.id} className="card p-4 border-primary-200 bg-primary-50/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Editing</span>
-                    <div className="flex gap-1">
-                      <button onClick={() => setEditingDeck(null)} className="edit-action-btn text-slate-500 hover:text-slate-700"><X className="w-4 h-4" /></button>
-                      <button onClick={saveDeck} disabled={saving} className="edit-action-btn text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      </button>
-                    </div>
+                <div key={deck.id} className="card-tactile p-5 bg-[#FFE8ED] border-2 border-[#351027] space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#351027]/10">
+                    <span className="text-xs font-display font-extrabold text-[#8F1230]">
+                      Edit Deck: {deck.title}
+                    </span>
+                    <button onClick={() => setEditingDeck(null)} className="text-[#351027]">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <input type="text" value={deckDraft.title} onChange={(e) => setDeckDraft((d) => ({ ...d, title: e.target.value }))} className="editable-input" />
-                  <textarea value={deckDraft.description} onChange={(e) => setDeckDraft((d) => ({ ...d, description: e.target.value }))} className="editable-textarea" rows={2} />
-                  <input type="text" value={deckDraft.filePath} onChange={(e) => setDeckDraft((d) => ({ ...d, filePath: e.target.value }))} className="editable-input" placeholder="File path" />
+
+                  <input
+                    type="text"
+                    value={deckDraft.title}
+                    onChange={(e) => setDeckDraft({ ...deckDraft, title: e.target.value })}
+                    className="w-full px-3 py-1.5 rounded-xl border border-[#351027] text-xs font-bold"
+                  />
+                  <textarea
+                    value={deckDraft.description}
+                    onChange={(e) => setDeckDraft({ ...deckDraft, description: e.target.value })}
+                    className="w-full px-3 py-1.5 rounded-xl border border-[#351027] text-xs font-medium"
+                    rows={2}
+                  />
+                  <input
+                    type="text"
+                    value={deckDraft.filePath}
+                    onChange={(e) => setDeckDraft({ ...deckDraft, filePath: e.target.value })}
+                    className="w-full px-3 py-1.5 rounded-xl border border-[#351027] text-xs"
+                  />
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button onClick={() => setEditingDeck(null)} className="btn-tactile btn-tactile-white">
+                      <span className="btn-tactile-inner py-1 px-3 text-xs font-bold">Cancel</span>
+                    </button>
+                    <button onClick={saveDeck} disabled={saving} className="btn-tactile btn-tactile-gold">
+                      <span className="btn-tactile-inner py-1 px-4 text-xs font-bold">Save</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div key={deck.id} className="card-hover p-4 group relative">
-                  <a href={deck.filePath} download className="block">
-                    <div className="flex items-center justify-between mb-3">
-                      <FileText className="w-4 h-4 text-primary-500" />
-                      <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-primary-500" />
+                <div
+                  key={deck.id}
+                  className="card-tactile p-6 space-y-3 flex flex-col justify-between hover:-translate-y-1 transition-transform relative group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-9 h-9 rounded-xl bg-[#FFE8ED] border border-[#351027] flex items-center justify-center text-[#F52F4F]">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditDeck(deck)}
+                          className="p-1 rounded-lg hover:bg-slate-200 text-[#351027]"
+                          title="Edit presentation"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        {isAuthenticated && (
+                          <button
+                            onClick={() => deleteDeck(deck.id)}
+                            className="p-1 rounded-lg hover:bg-red-100 text-red-600"
+                            title="Delete presentation"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <h3 className="text-sm font-medium text-slate-800 mb-1">{deck.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">{deck.description}</p>
-                    <span className="inline-block mt-3 text-xs font-medium text-primary-600">Download presentation</span>
-                  </a>
-                  {isAuthenticated && (
-                    <div className="absolute top-2 right-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.preventDefault(); startEditDeck(deck); }} className="edit-pencil-btn"><Pencil className="w-3 h-3" /></button>
-                      <button onClick={(e) => { e.preventDefault(); deleteDeck(deck.id); }} className="edit-pencil-btn text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
-                    </div>
-                  )}
+
+                    <h3 className="font-display font-extrabold text-base text-[#351027]">
+                      {deck.title}
+                    </h3>
+                    <p className="text-xs text-[#351027]/70 font-medium leading-relaxed mt-1">
+                      {deck.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#351027]/10 flex items-center justify-between">
+                    <a
+                      href={deck.filePath || '/presentations/Pharmacon_Commitment_Pitch.pptx'}
+                      download
+                      className="btn-tactile btn-tactile-white"
+                    >
+                      <span className="btn-tactile-inner py-1 px-3 text-xs font-extrabold flex items-center gap-1.5">
+                        <Download className="w-3 h-3 text-[#F52F4F]" />
+                        Download PPTX
+                      </span>
+                    </a>
+                  </div>
                 </div>
               )
             ))}
           </div>
         </section>
 
-        {/* Planning V1 section */}
-        {Object.entries(byVersion).map(([versionName, items], vi) => (
-          <section key={versionName} className="animate-in" style={{ animationDelay: `${vi * 0.05}s` }}>
-            <h2 className="section-heading">{versionName}</h2>
+        {/* Deliverables by Version */}
+        {Object.entries(byVersion).map(([versionName, items]) => (
+          <section key={versionName} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="heading-chunky text-lg text-[#351027]">
+                {versionName} Deliverables
+              </h2>
+              <span className="pill-tag text-[10px]">Archived Releases</span>
+            </div>
+
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {items.map((d) => (
                 <Link
                   key={d.id}
                   to={`/deliverable/${d.id}`}
-                  className="card-hover p-4 group"
+                  className="card-tactile p-4 space-y-2 hover:-translate-y-1 transition-transform block"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span className={getStatusBadge(d.status)}>
-                      {d.status === 'in-progress' ? 'In Progress' : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="pill-tag-pink text-[10px]">{d.type}</span>
+                    <span className="text-[10px] font-bold text-[#351027]/60">{d.date}</span>
                   </div>
-                  <h3 className="text-sm font-medium text-slate-800 mb-1 group-hover:text-primary-600 transition-colors">
+
+                  <h3 className="font-display font-extrabold text-sm text-[#351027]">
                     {d.title}
                   </h3>
-                  <div className="text-xs text-slate-500 space-y-0.5">
-                    <div>Type: {d.type}</div>
-                    <div>Date: {d.date}</div>
-                    {d.file_name && <div className="text-primary-600">📎 {d.file_name}</div>}
-                  </div>
-                  <div className="flex items-center gap-1 mt-3 text-xs text-primary-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Eye className="w-3 h-3" />
-                    View Details
+
+                  <div className="pt-2 border-t border-[#351027]/10 text-xs font-bold text-[#F52F4F] flex items-center gap-1">
+                    <Eye className="w-3.5 h-3.5" />
+                    View Deliverable Details →
                   </div>
                 </Link>
               ))}
             </div>
           </section>
         ))}
-
-        {/* Unversioned deliverables */}
-        {noVersion.length > 0 && (
-          <section className="animate-in">
-            <h2 className="section-heading">Other Deliverables</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {noVersion.map((d) => (
-                <Link
-                  key={d.id}
-                  to={`/deliverable/${d.id}`}
-                  className="card-hover p-4 group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span className={getStatusBadge(d.status)}>
-                      {d.status === 'in-progress' ? 'In Progress' : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-medium text-slate-800 mb-1 group-hover:text-primary-600 transition-colors">
-                    {d.title}
-                  </h3>
-                  <div className="text-xs text-slate-500 space-y-0.5">
-                    <div>Type: {d.type}</div>
-                    <div>Date: {d.date}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Quick navigation */}
-        <section className="animate-in-delay-1">
-          <h2 className="section-heading">Quick Navigation</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Link to="/software-grid" className="card-hover p-4 flex items-center gap-3">
-              <ExternalLink className="w-4 h-4 text-primary-500" />
-              <div>
-                <div className="text-sm font-medium text-slate-800">Software Grid</div>
-                <div className="text-xs text-slate-500">Technology stack overview</div>
-              </div>
-            </Link>
-            <Link to="/versions" className="card-hover p-4 flex items-center gap-3">
-              <ExternalLink className="w-4 h-4 text-primary-500" />
-              <div>
-                <div className="text-sm font-medium text-slate-800">Version History</div>
-                <div className="text-xs text-slate-500">All versions and changes</div>
-              </div>
-            </Link>
-          </div>
-        </section>
       </div>
     </div>
   );

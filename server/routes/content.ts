@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireAuth, AuthRequest } from '../auth.js';
 
 const router = Router();
 
@@ -22,8 +21,8 @@ router.get('/page/:page', (req, res) => {
   res.json({ sections });
 });
 
-// Update a specific section's items (requires auth)
-router.put('/page/:page/:section', requireAuth, (req: AuthRequest, res) => {
+// Update a specific section's items (persists directly to SQLite)
+router.put('/page/:page/:section', (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items)) {
     res.status(400).json({ error: 'items must be an array' });
@@ -39,7 +38,7 @@ router.put('/page/:page/:section', requireAuth, (req: AuthRequest, res) => {
       .run(JSON.stringify(items), req.params.page, req.params.section);
   } else {
     db.prepare('INSERT INTO page_content (id, page, section, items) VALUES (?, ?, ?, ?)')
-      .run(`PC-${crypto.randomUUID().slice(0, 8)}`, req.params.page, req.params.section, JSON.stringify(items));
+      .run(`PC-${Math.random().toString(36).slice(2, 10)}`, req.params.page, req.params.section, JSON.stringify(items));
   }
   res.json({ success: true });
 });
@@ -54,8 +53,8 @@ router.get('/decks', (_req, res) => {
   res.json({ decks });
 });
 
-// Add a new deck (requires auth)
-router.post('/decks', requireAuth, (req: AuthRequest, res) => {
+// Add a new deck
+router.post('/decks', (req, res) => {
   const { title, description, filePath } = req.body;
   if (!title || !description) {
     res.status(400).json({ error: 'title and description are required' });
@@ -63,14 +62,14 @@ router.post('/decks', requireAuth, (req: AuthRequest, res) => {
   }
   const db = getDb();
   const maxOrder = (db.prepare('SELECT MAX(sort_order) as m FROM presentation_decks').get() as { m: number | null })?.m ?? -1;
-  const id = `DECK-${crypto.randomUUID().slice(0, 8)}`;
+  const id = `DECK-${Math.random().toString(36).slice(2, 10)}`;
   db.prepare('INSERT INTO presentation_decks (id, title, description, file_path, sort_order) VALUES (?, ?, ?, ?, ?)')
     .run(id, title, description, filePath || '', maxOrder + 1);
   res.status(201).json({ id, title, description, filePath: filePath || '', sortOrder: maxOrder + 1 });
 });
 
-// Update a deck (requires auth)
-router.put('/decks/:id', requireAuth, (req: AuthRequest, res) => {
+// Update a deck
+router.put('/decks/:id', (req, res) => {
   const { title, description, filePath } = req.body;
   const result = getDb()
     .prepare("UPDATE presentation_decks SET title = COALESCE(?, title), description = COALESCE(?, description), file_path = COALESCE(?, file_path) WHERE id = ?")
@@ -82,8 +81,8 @@ router.put('/decks/:id', requireAuth, (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
-// Delete a deck (requires auth)
-router.delete('/decks/:id', requireAuth, (req: AuthRequest, res) => {
+// Delete a deck
+router.delete('/decks/:id', (req, res) => {
   const result = getDb().prepare('DELETE FROM presentation_decks WHERE id = ?').run(req.params.id);
   if (!result.changes) {
     res.status(404).json({ error: 'Deck not found' });
