@@ -1,17 +1,14 @@
 services:
   - type: web
-    name: pharmacon
-    runtime: docker
-    plan: starter
-    healthCheckPath: /api/health
+    name: pharmacon-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run server
     envVars:
       - key: PORT
-        value: "3001"
-      - key: DATA_DIR
-        value: /app/data
+        value: 10000
       - key: JWT_SECRET
         generateValue: true
-    disk:
-      name: pharmacon-data
-      mountPath: /app/data
-      sizeGB: 1
+      - key: NODE_ENV
+        value: production

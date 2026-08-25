@@ -1,7 +1,9 @@
 // ─── API Client ─────────────────────────────────────────────────────────
 // Centralized fetch wrapper that attaches JWT auth header automatically
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api` 
+  : '/api';
 
 function getToken(): string | null {
   return localStorage.getItem('pharmacon_token');
