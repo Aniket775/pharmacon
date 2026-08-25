@@ -306,4 +306,52 @@ export const storageService = {
       });
     });
   },
+
+  async getTeamMembers(): Promise<any[]> {
+    // 1. Try Supabase cloud first
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('*')
+          .order('id', { ascending: true });
+        if (!error && data && data.length > 0) {
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase getTeamMembers fallback:', err);
+      }
+    }
+
+    // 2. Try Express API backend
+    try {
+      const apiRes = await api.get<{ members: any[] }>('/team');
+      if (apiRes.members && apiRes.members.length > 0) {
+        return apiRes.members;
+      }
+    } catch (e) {}
+
+    // 3. Fallback to cached list
+    const cached = localStorage.getItem('pharmacon_team_members');
+    return cached ? JSON.parse(cached) : [];
+  },
+
+  async updateTeamMember(memberId: string, memberData: any): Promise<void> {
+    // 1. Update Supabase cloud database
+    if (supabase) {
+      try {
+        await supabase
+          .from('team_members')
+          .update(memberData)
+          .eq('id', memberId);
+      } catch (err) {
+        console.warn('Supabase updateTeamMember fallback:', err);
+      }
+    }
+
+    // 2. Update Express API backend
+    try {
+      await api.put(`/team/${memberId}`, memberData);
+    } catch (err) {}
+  },
 };
