@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { RefillsRepository } from '../../lib/dataStore';
 import { useAuth } from '../../context/AuthContext';
 import { logAuditEvent } from '../../lib/auditLogger';
 import {
@@ -16,57 +17,19 @@ import { Link } from 'react-router-dom';
 import StatusBadge from '../../components/StatusBadge';
 import Toast from '../../components/Toast';
 
-const DEFAULT_REFILLS = [
-  {
-    id: 'RF-001',
-    prescription_id: 'RX-2024-0001',
-    patient_id: 'PT-1001',
-    patient_name: 'Rahul Kumar',
-    medicine: 'Amoxicillin',
-    strength: '500 mg',
-    status: 'pending',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'RF-002',
-    prescription_id: 'RX-2024-0002',
-    patient_id: 'PT-1002',
-    patient_name: 'Meera Patel',
-    medicine: 'Metformin',
-    strength: '500 mg',
-    status: 'approved',
-    created_at: new Date().toISOString(),
-  },
-];
-
 export default function PharmacyDashboard() {
   const { profile, role, user } = useAuth();
-  const [refills, setRefills] = useState(DEFAULT_REFILLS);
+  const [refills, setRefills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
   const fetchRefills = async () => {
     setLoading(true);
     try {
-      if (!isSupabaseConfigured()) {
-        setRefills(DEFAULT_REFILLS);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('refill_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        setRefills(DEFAULT_REFILLS);
-      } else {
-        setRefills(data);
-      }
+      const data = await RefillsRepository.getAll();
+      setRefills(data);
     } catch (e) {
       console.warn('Refills fetch error:', e);
-      setRefills(DEFAULT_REFILLS);
     } finally {
       setLoading(false);
     }
@@ -78,17 +41,10 @@ export default function PharmacyDashboard() {
 
   const handleUpdateStatus = async (refillId, newStatus) => {
     try {
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase
-          .from('refill_requests')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', refillId);
-
-        if (error) throw error;
-      }
+      const updated = await RefillsRepository.updateStatus(refillId, newStatus);
 
       setRefills((prev) =>
-        prev.map((r) => (r.id === refillId ? { ...r, status: newStatus } : r))
+        prev.map((r) => (r.id === refillId ? (updated || { ...r, status: newStatus }) : r))
       );
 
       await logAuditEvent({

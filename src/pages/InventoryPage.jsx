@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { InventoryRepository } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { logAuditEvent } from '../lib/auditLogger';
 import {
@@ -138,28 +139,10 @@ export default function InventoryPage() {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      if (!isSupabaseConfigured()) {
-        setItems(INITIAL_SEED_INVENTORY);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select('*')
-        .order('medicine', { ascending: true });
-
-      if (error) {
-        console.warn('Supabase inventory error:', error.message);
-        setItems(INITIAL_SEED_INVENTORY);
-      } else if (data && data.length > 0) {
-        setItems(data);
-      } else {
-        setItems(INITIAL_SEED_INVENTORY);
-      }
+      const data = await InventoryRepository.getAll();
+      setItems(data);
     } catch (err) {
-      console.warn('Fetch inventory exception:', err);
-      setItems(INITIAL_SEED_INVENTORY);
+      console.warn('Fetch inventory note:', err);
     } finally {
       setLoading(false);
     }
@@ -175,20 +158,10 @@ export default function InventoryPage() {
     if (newStock === item.stock) return;
 
     try {
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase
-          .from('inventory_items')
-          .update({
-            stock: newStock,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', item.id);
-
-        if (error) throw error;
-      }
+      const updated = await InventoryRepository.updateStock(item.id, newStock);
 
       setItems((prev) =>
-        prev.map((it) => (it.id === item.id ? { ...it, stock: newStock } : it))
+        prev.map((it) => (it.id === item.id ? updated : it))
       );
 
       await logAuditEvent({
@@ -214,8 +187,7 @@ export default function InventoryPage() {
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      const newItem = {
-        id: 'INV-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+      const newItem = await InventoryRepository.addItem({
         medicine: formData.medicine,
         generic_name: formData.generic_name || formData.medicine,
         strength: formData.strength,
@@ -224,13 +196,7 @@ export default function InventoryPage() {
         sku: formData.sku || (formData.medicine.slice(0, 3).toUpperCase() + '-' + parseInt(formData.strength || '100') + '-SKU'),
         stock: parseInt(formData.stock) || 0,
         reorder_level: parseInt(formData.reorder_level) || 10,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase.from('inventory_items').insert([newItem]);
-        if (error) throw error;
-      }
+      });
 
       setItems((prev) => [...prev, newItem]);
       await logAuditEvent({
@@ -266,20 +232,12 @@ export default function InventoryPage() {
         sku: formData.sku,
         stock: Math.max(0, parseInt(formData.stock) || 0),
         reorder_level: parseInt(formData.reorder_level) || 10,
-        updated_at: new Date().toISOString(),
       };
 
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase
-          .from('inventory_items')
-          .update(updatedPayload)
-          .eq('id', editingItem.id);
-
-        if (error) throw error;
-      }
+      const updated = await InventoryRepository.updateItem(editingItem.id, updatedPayload);
 
       setItems((prev) =>
-        prev.map((it) => (it.id === editingItem.id ? { ...it, ...updatedPayload } : it))
+        prev.map((it) => (it.id === editingItem.id ? updated : it))
       );
 
       await logAuditEvent({
@@ -305,14 +263,7 @@ export default function InventoryPage() {
     if (!deletingItem) return;
 
     try {
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase
-          .from('inventory_items')
-          .delete()
-          .eq('id', deletingItem.id);
-
-        if (error) throw error;
-      }
+      await InventoryRepository.deleteItem(deletingItem.id);
 
       setItems((prev) => prev.filter((it) => it.id !== deletingItem.id));
 

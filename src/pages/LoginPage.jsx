@@ -143,7 +143,7 @@ export default function LoginPage() {
                     <option value="pharmacist">Pharmacist (Dispensing &amp; Inventory)</option>
                     <option value="patient">Patient (Medications &amp; Refills)</option>
                     <option value="admin">System Administrator</option>
-                    <option value="instructor">Academic Instructor / Reviewer</option>
+                    <option value="instructor">Clinical Auditor / Reviewer</option>
                   </select>
                 </div>
               </>

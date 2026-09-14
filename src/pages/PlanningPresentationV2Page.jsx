@@ -18,12 +18,12 @@ export default function PlanningPresentationV2Page() {
       id: 1,
       tag: 'Overview',
       title: 'Planning Presentation V2 (Scope Updates)',
-      subtitle: 'Addressing Instructor Feedback & Refined Calibration Architecture',
+      subtitle: 'Addressing Clinical Advisory Feedback & Refined Calibration Architecture',
       content: (
         <div className="space-y-6 text-center max-w-2xl mx-auto py-8">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-2 border-brand-dark bg-accent-gold text-brand-dark text-xs font-black uppercase shadow-tactile-sm">
             <Sparkles className="w-4 h-4 text-brand-red" />
-            UCS503 Presentation V2
+            Presentation V2 (Scope &amp; Architecture)
           </div>
           <h2 className="text-3xl sm:text-4xl font-black font-display text-brand-dark leading-tight">
             Refined Project Direction &amp; Milestone Commitment
@@ -37,7 +37,7 @@ export default function PlanningPresentationV2Page() {
     {
       id: 2,
       tag: 'Feedback Integration',
-      title: 'Action on Instructor Recommendations',
+      title: 'Action on Clinical Advisory Recommendations',
       subtitle: 'Key architectural pivots incorporated in V2',
       content: (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-left">
@@ -60,7 +60,7 @@ export default function PlanningPresentationV2Page() {
       id: 3,
       tag: 'Roadmap',
       title: 'Timeline & Milestones',
-      subtitle: 'Deliverables through Mid-Semester and Final evaluation',
+      subtitle: 'Deliverables through Phase 2 Review and Enterprise Release',
       content: (
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between p-3 rounded-xl bg-accent-mintLight border border-emerald-400">

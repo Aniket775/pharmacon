@@ -77,7 +77,7 @@ export default function Navbar() {
                   </span>
                 </div>
                 <span className="text-[11px] font-semibold text-brand-dark/60 block -mt-1">
-                  UCS503 Capstone Engine
+                  Clinical Workflow Engine
                 </span>
               </div>
             </Link>

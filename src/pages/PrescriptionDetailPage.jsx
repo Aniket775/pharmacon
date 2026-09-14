@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { PrescriptionsRepository, InventoryRepository } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { matchFormulary } from '../lib/formularyMatcher';
 import { logAuditEvent } from '../lib/auditLogger';
@@ -41,59 +42,20 @@ export default function PrescriptionDetailPage() {
     async function loadData() {
       setLoading(true);
       try {
-        let rx = null;
-        let rxFields = [];
-        let inv = [];
+        const [rx, inv] = await Promise.all([
+          PrescriptionsRepository.getById(id),
+          InventoryRepository.getAll(),
+        ]);
 
-        if (isSupabaseConfigured()) {
-          // Fetch Prescription
-          const { data: rxData } = await supabase
-            .from('prescriptions')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-          if (rxData) rx = rxData;
-
-          // Fetch Fields
-          const { data: fieldData } = await supabase
-            .from('prescription_fields')
-            .select('*')
-            .eq('prescription_id', id);
-
-          if (fieldData) rxFields = fieldData;
-
-          // Fetch Inventory
-          const { data: invData } = await supabase.from('inventory_items').select('*');
-          if (invData) inv = invData;
-        }
-
-        // Fallback default sample if not found or offline
-        if (!rx) {
-          rx = {
-            id: id || 'RX-2024-0001',
-            patient_id: 'PT-1001',
-            patient_name: 'Rahul Kumar',
-            doctor_name: 'Dr. A. Sharma',
-            image_url: '',
-            status: 'draft',
-            created_at: new Date().toISOString(),
-          };
-
-          rxFields = [
-            { label: 'Medicine', value: 'Amoxicillin', confidence: 94, needs_verification: false },
-            { label: 'Strength', value: '500 mg', confidence: 97, needs_verification: false },
-            { label: 'Dosage Form', value: 'Tablet', confidence: 96, needs_verification: false },
-            { label: 'Frequency', value: '1-0-1', confidence: 86, needs_verification: true },
-            { label: 'Route', value: 'Oral', confidence: 92, needs_verification: false },
-            { label: 'Duration', value: '5 days', confidence: 91, needs_verification: false },
-            { label: 'Instructions', value: 'After food', confidence: 88, needs_verification: true },
-          ];
-
-          inv = [
-            { id: 'INV-001', medicine: 'Amoxicillin', strength: '500 mg', dosage_form: 'Tablet', sku: 'AMX-500-TAB', pack_size: '10 tablets', stock: 124, reorder_level: 30 },
-          ];
-        }
+        const rxFields = rx?.fields || [
+          { label: 'Medicine', value: 'Amoxicillin', confidence: 94, needs_verification: false },
+          { label: 'Strength', value: '500 mg', confidence: 97, needs_verification: false },
+          { label: 'Dosage Form', value: 'Tablet', confidence: 96, needs_verification: false },
+          { label: 'Frequency', value: '1-0-1', confidence: 86, needs_verification: true },
+          { label: 'Route', value: 'Oral', confidence: 92, needs_verification: false },
+          { label: 'Duration', value: '5 days', confidence: 91, needs_verification: false },
+          { label: 'Instructions', value: 'After food', confidence: 88, needs_verification: true },
+        ];
 
         setPrescription(rx);
         setFields(rxFields);
@@ -121,13 +83,12 @@ export default function PrescriptionDetailPage() {
     setFields(updated);
     setEditingFieldIndex(null);
 
-    // Update in Supabase
-    if (isSupabaseConfigured() && updated[index].id) {
-      await supabase
-        .from('prescription_fields')
-        .update({ value: editValue, needs_verification: false, confidence: 100 })
-        .eq('id', updated[index].id);
-    }
+    // Persist via unified repository
+    await PrescriptionsRepository.updateField(prescription.id, index, {
+      value: editValue,
+      needs_verification: false,
+      confidence: 100,
+    });
 
     // Recalculate Formulary match
     const newMatch = matchFormulary(updated, inventory);
@@ -148,23 +109,17 @@ export default function PrescriptionDetailPage() {
   const handleConfirmPrescription = async () => {
     setConfirming(true);
     try {
-      if (isSupabaseConfigured()) {
-        await supabase
-          .from('prescriptions')
-          .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-          .eq('id', prescription.id);
-
-        if (formularyResult?.matched && formularyResult?.item) {
-          const item = formularyResult.item;
-          const newStock = Math.max(0, item.stock - 1);
-          await supabase
-            .from('inventory_items')
-            .update({ stock: newStock, updated_at: new Date().toISOString() })
-            .eq('id', item.id);
-        }
-      }
+      // Confirm & reserve inventory stock in unified persistence
+      await PrescriptionsRepository.confirm(
+        prescription.id,
+        formularyResult?.matched ? formularyResult.item : null
+      );
 
       setPrescription((prev) => ({ ...prev, status: 'confirmed' }));
+
+      // Refresh inventory
+      const freshInv = await InventoryRepository.getAll();
+      setInventory(freshInv);
 
       await logAuditEvent({
         actorName: profile?.name || user?.email || 'Clinic Staff',
@@ -172,7 +127,7 @@ export default function PrescriptionDetailPage() {
         action: 'Prescription Confirmed',
         entity: 'Prescription',
         entityId: prescription.id,
-        details: `Confirmed ${prescription.id} in Supabase`,
+        details: `Confirmed ${prescription.id} and synced inventory`,
       });
 
       setToast({ type: 'success', message: 'Prescription confirmed and inventory synchronized!' });

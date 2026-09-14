@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { InventoryRepository, PrescriptionsRepository } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { extractPrescription, EXTRACTION_ENGINE_STATUS } from '../lib/extractionEngine';
 import { matchFormulary } from '../lib/formularyMatcher';
@@ -46,20 +47,14 @@ export default function PrototypePage() {
   const [confirmedData, setConfirmedData] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Load Inventory from Supabase for Formulary Matching
+  // Load Inventory from unified repository for Formulary Matching
   useEffect(() => {
     async function loadInv() {
-      if (!isSupabaseConfigured()) {
-        setInventory([
-          { id: 'INV-001', medicine: 'Amoxicillin', strength: '500 mg', dosage_form: 'Tablet', sku: 'AMX-500-TAB', pack_size: '10 tablets', stock: 124, reorder_level: 30 },
-          { id: 'INV-002', medicine: 'Paracetamol', strength: '650 mg', dosage_form: 'Tablet', sku: 'PCM-650-TAB', pack_size: '15 tablets', stock: 256, reorder_level: 50 },
-          { id: 'INV-003', medicine: 'Metformin', strength: '500 mg', dosage_form: 'Tablet', sku: 'MET-500-TAB', pack_size: '10 tablets', stock: 18, reorder_level: 25 },
-        ]);
-        return;
-      }
       try {
-        const { data } = await supabase.from('inventory_items').select('*');
-        if (data) setInventory(data);
+        const data = await InventoryRepository.getAll();
+        if (data && data.length > 0) {
+          setInventory(data);
+        }
       } catch (err) {
         console.warn('Inventory fetch error in prototype:', err);
       }
@@ -173,40 +168,26 @@ export default function PrototypePage() {
     try {
       const medicineName = fields.find((f) => f.label.toLowerCase() === 'medicine')?.value || 'Amoxicillin';
 
-      // 1. Supabase persistence
-      if (isSupabaseConfigured()) {
-        // Upsert Prescription record
-        await supabase.from('prescriptions').upsert({
-          id: prescriptionId,
-          patient_id: 'PT-1001',
-          patient_name: 'Rahul Kumar',
-          doctor_name: 'Dr. A. Sharma',
-          image_url: imagePreviewUrl,
-          status: 'confirmed',
-          updated_at: new Date().toISOString(),
-        });
+      // 1. Unified Persistence via PrescriptionsRepository (Supabase + IndexedDB)
+      await PrescriptionsRepository.save({
+        id: prescriptionId,
+        patient_id: 'PT-1001',
+        patient_name: 'Rahul Kumar',
+        doctor_name: profile?.name || 'Dr. A. Sharma',
+        image_url: imagePreviewUrl,
+        status: 'confirmed',
+        fields,
+      });
 
-        // Insert fields
-        await supabase.from('prescription_fields').delete().eq('prescription_id', prescriptionId);
-        const fieldsPayload = fields.map((f) => ({
-          prescription_id: prescriptionId,
-          label: f.label,
-          value: f.value,
-          confidence: f.confidence,
-          needs_verification: f.needsVerification,
-        }));
-        await supabase.from('prescription_fields').insert(fieldsPayload);
+      // 2. Confirm and deduct inventory stock
+      await PrescriptionsRepository.confirm(
+        prescriptionId,
+        formularyResult?.matched ? formularyResult.item : null
+      );
 
-        // Deduct inventory stock if matched
-        if (formularyResult?.matched && formularyResult?.item) {
-          const item = formularyResult.item;
-          const newStock = Math.max(0, item.stock - 1);
-          await supabase
-            .from('inventory_items')
-            .update({ stock: newStock, updated_at: new Date().toISOString() })
-            .eq('id', item.id);
-        }
-      }
+      // Re-fetch inventory to ensure state stays in sync
+      const freshInv = await InventoryRepository.getAll();
+      setInventory(freshInv);
 
       await logAuditEvent({
         actorName: profile?.name || user?.email || 'Clinic Staff',
@@ -214,7 +195,7 @@ export default function PrototypePage() {
         action: 'Prescription Confirmed & Stock Reserved',
         entity: 'Prescription',
         entityId: prescriptionId,
-        details: `Confirmed prescription ${prescriptionId} for ${medicineName}. 1 pack reserved.`,
+        details: `Confirmed prescription ${prescriptionId} for ${medicineName}. 1 pack reserved in formulary.`,
       });
 
       setConfirmedData({

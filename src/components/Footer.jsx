@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="bg-brand-dark text-canvas border-t-3 border-brand-dark mt-20 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-canvas/15">
-          {/* Col 1: Brand & Course */}
+          {/* Col 1: Brand & Platform */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-brand-red rounded-xl border-2 border-canvas flex items-center justify-center text-canvas font-black font-display text-xl">
@@ -18,7 +18,7 @@ export default function Footer() {
                   Pharmacon
                 </span>
                 <span className="block text-xs text-accent-gold font-bold">
-                  UCS503 Capstone Project Rebuild
+                  Clinical Handwriting &amp; Formulary Engine
                 </span>
               </div>
             </div>
@@ -44,7 +44,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/problem-users" className="hover:text-brand-pink transition-colors">
-                  Clinical Users & Pain Points
+                  Clinical Users &amp; Pain Points
                 </Link>
               </li>
               <li>
@@ -59,7 +59,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/feasibility" className="hover:text-brand-pink transition-colors">
-                  Feasibility & Risk Matrix
+                  Feasibility &amp; Risk Matrix
                 </Link>
               </li>
               <li>
@@ -73,7 +73,7 @@ export default function Footer() {
           {/* Col 3: Workflows & Demos */}
           <div>
             <h4 className="font-display font-bold text-accent-gold text-sm uppercase tracking-wider mb-4">
-              Workflows & Demos
+              Workflows &amp; Demos
             </h4>
             <ul className="space-y-2 text-sm text-canvas/80 font-medium">
               <li>
@@ -112,7 +112,7 @@ export default function Footer() {
           {/* Col 4: Project Deliverables */}
           <div>
             <h4 className="font-display font-bold text-accent-gold text-sm uppercase tracking-wider mb-4">
-              Releases & Team
+              Releases &amp; Team
             </h4>
             <ul className="space-y-2 text-sm text-canvas/80 font-medium">
               <li>
@@ -122,7 +122,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/deliverables" className="hover:text-brand-pink transition-colors">
-                  Course Deliverables
+                  Project Deliverables
                 </Link>
               </li>
               <li>
@@ -149,11 +149,11 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar with Academic Notice & Team Credits */}
+        {/* Bottom Bar with Platform Notice & Team Credits */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-canvas/70">
           <div>
             <p>
-              Developed by <strong className="text-canvas">Aryan Sharma, Aniket Raj, Amitesh Kumar Singh & Chirag Lamba</strong>.
+              Developed by <strong className="text-canvas">Aryan Sharma, Aniket Raj, Amitesh Kumar Singh &amp; Chirag Lamba</strong>.
             </p>
             <p className="mt-1 text-canvas/60">
               Disclaimer: ML Handwriting extraction is currently in planning/training. Prototype runs simulated inference for workflow verification.
@@ -161,7 +161,7 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-4">
             <span className="bg-canvas/10 px-3 py-1 rounded-full border border-canvas/20">
-              Built for UCS503 Capstone
+              Healthcare Technology Platform
             </span>
             <span className="text-brand-pink">●</span>
             <span>React + Vite + Tailwind + Supabase</span>

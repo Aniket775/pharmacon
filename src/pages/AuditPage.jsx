@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { AuditRepository } from '../lib/dataStore';
 import {
   ShieldCheck,
   Search,
@@ -12,59 +13,6 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const INITIAL_AUDIT_LOGS = [
-  {
-    id: 'AE-001',
-    created_at: '2026-08-25T09:15:22Z',
-    actor_name: 'Dr. A. Sharma',
-    actor_role: 'doctor',
-    action: 'Prescription Uploaded',
-    entity: 'Prescription',
-    entity_id: 'RX-2024-0001',
-    details: 'Uploaded high-res clinical prescription photo for Rahul Kumar',
-  },
-  {
-    id: 'AE-002',
-    created_at: '2026-08-25T09:15:24Z',
-    actor_name: 'System Engine',
-    actor_role: 'system',
-    action: 'OCR Extraction Generated',
-    entity: 'Prescription',
-    entity_id: 'RX-2024-0001',
-    details: 'Simulated OCR extraction returned 7 structured clinical fields',
-  },
-  {
-    id: 'AE-003',
-    created_at: '2026-08-25T09:18:10Z',
-    actor_name: 'Priya Desai',
-    actor_role: 'clinic-staff',
-    action: 'Staff Correction Made',
-    entity: 'PrescriptionField',
-    entity_id: 'RX-2024-0001',
-    details: 'Verified frequency notation from 1-0-2 to 1-0-1',
-  },
-  {
-    id: 'AE-004',
-    created_at: '2026-08-25T09:20:45Z',
-    actor_name: 'Priya Desai',
-    actor_role: 'clinic-staff',
-    action: 'Prescription Confirmed',
-    entity: 'Prescription',
-    entity_id: 'RX-2024-0001',
-    details: 'Prescription status updated to confirmed; inventory stock reserved',
-  },
-  {
-    id: 'AE-005',
-    created_at: '2026-08-25T14:30:00Z',
-    actor_name: 'Rahul Kumar',
-    actor_role: 'patient',
-    action: 'Refill Requested',
-    entity: 'RefillRequest',
-    entity_id: 'RF-001',
-    details: 'Initiated refill request for Amoxicillin 500 mg',
-  },
-];
-
 export default function AuditPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,28 +22,10 @@ export default function AuditPage() {
   const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      if (!isSupabaseConfigured()) {
-        setLogs(INITIAL_AUDIT_LOGS);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('audit_events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.warn('Supabase audit error:', error.message);
-        setLogs(INITIAL_AUDIT_LOGS);
-      } else if (data && data.length > 0) {
-        setLogs(data);
-      } else {
-        setLogs(INITIAL_AUDIT_LOGS);
-      }
+      const data = await AuditRepository.getAll();
+      setLogs(data);
     } catch (err) {
       console.warn('Fetch audit exception:', err);
-      setLogs(INITIAL_AUDIT_LOGS);
     } finally {
       setLoading(false);
     }

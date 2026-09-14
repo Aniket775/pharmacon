@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { TeamRepository } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { logAuditEvent } from '../lib/auditLogger';
 import {
@@ -80,29 +81,10 @@ export default function TeamPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      if (!isSupabaseConfigured()) {
-        // Fallback default
-        setMembers(DEFAULT_TEAM);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (error) {
-        console.warn('Supabase fetch team error:', error.message);
-        setMembers(DEFAULT_TEAM);
-      } else if (data && data.length > 0) {
-        setMembers(data);
-      } else {
-        setMembers(DEFAULT_TEAM);
-      }
+      const data = await TeamRepository.getAll();
+      setMembers(data);
     } catch (err) {
       console.warn('Team fetch error:', err);
-      setMembers(DEFAULT_TEAM);
     } finally {
       setLoading(false);
     }
@@ -134,7 +116,6 @@ export default function TeamPage() {
     setUploadingImage(true);
     try {
       if (!isSupabaseConfigured()) {
-        // Create local object URL for preview in offline mode
         const previewUrl = URL.createObjectURL(file);
         setFormData((prev) => ({ ...prev, avatar_url: previewUrl }));
         setToast({ type: 'info', message: 'Loaded local preview image.' });
@@ -161,13 +142,16 @@ export default function TeamPage() {
       setToast({ type: 'success', message: 'Profile image uploaded to Supabase Storage!' });
     } catch (err) {
       console.error('Storage upload error:', err);
-      setToast({ type: 'error', message: `Image upload failed: ${err.message}` });
+      // Fallback preview
+      const previewUrl = URL.createObjectURL(file);
+      setFormData((prev) => ({ ...prev, avatar_url: previewUrl }));
+      setToast({ type: 'info', message: 'Loaded image preview (offline mode).' });
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // Save Team Member Changes to Supabase
+  // Save Team Member Changes
   const handleSaveMember = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -181,22 +165,13 @@ export default function TeamPage() {
         avatar_url: formData.avatar_url,
         github_url: formData.github_url,
         linkedin_url: formData.linkedin_url,
-        updated_at: new Date().toISOString(),
       };
 
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase
-          .from('team_members')
-          .update(updatedPayload)
-          .eq('id', formData.id);
+      const updated = await TeamRepository.updateMember(formData.id, updatedPayload);
 
-        if (error) throw error;
-      } else {
-        // Offline state update
-        setMembers((prev) =>
-          prev.map((m) => (m.id === formData.id ? { ...m, ...updatedPayload } : m))
-        );
-      }
+      setMembers((prev) =>
+        prev.map((m) => (m.id === formData.id ? updated : m))
+      );
 
       await logAuditEvent({
         actorName: profile?.name || user?.email || 'Admin',

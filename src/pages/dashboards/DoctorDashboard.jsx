@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { PrescriptionsRepository } from '../../lib/dataStore';
 import { useAuth } from '../../context/AuthContext';
 import {
   Stethoscope,
@@ -16,10 +17,25 @@ import StatusBadge from '../../components/StatusBadge';
 
 export default function DoctorDashboard() {
   const { profile } = useAuth();
-  const [recentPrescriptions, setRecentPrescriptions] = useState([
-    { id: 'RX-2024-0001', patient_name: 'Rahul Kumar', doctor_name: 'Dr. A. Sharma', status: 'confirmed', date: '2024-11-15' },
-    { id: 'RX-2024-0002', patient_name: 'Meera Patel', doctor_name: 'Dr. A. Sharma', status: 'draft', date: '2024-11-16' },
-  ]);
+  const [recentPrescriptions, setRecentPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadRx() {
+      try {
+        const data = await PrescriptionsRepository.getAll();
+        setRecentPrescriptions(data || []);
+      } catch (err) {
+        console.warn('DoctorDashboard prescriptions load error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRx();
+  }, []);
+
+  const pendingCount = recentPrescriptions.filter((r) => r.status !== 'confirmed').length;
+  const confirmedCount = recentPrescriptions.filter((r) => r.status === 'confirmed').length;
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
@@ -76,7 +92,7 @@ export default function DoctorDashboard() {
           <span className="text-xs font-black uppercase text-brand-dark/60">
             Pending Staff Verification
           </span>
-          <div className="text-3xl font-black font-display text-brand-crimson">1</div>
+          <div className="text-3xl font-black font-display text-brand-crimson">{pendingCount}</div>
           <p className="text-xs text-brand-dark/70">
             Prescriptions currently flagged with low confidence awaiting clinic verification.
           </p>
@@ -86,7 +102,7 @@ export default function DoctorDashboard() {
           <span className="text-xs font-black uppercase text-brand-dark/60">
             Confirmed &amp; Dispensed
           </span>
-          <div className="text-3xl font-black font-display text-emerald-800">1</div>
+          <div className="text-3xl font-black font-display text-emerald-800">{confirmedCount}</div>
           <p className="text-xs text-brand-dark/70">
             Prescriptions verified and synchronized with hospital pharmacy inventory.
           </p>

@@ -24,7 +24,7 @@ const DEFAULT_DELIVERABLES = [
     version_id: 'v1.0.0',
     date: '2026-08-25',
     status: 'published',
-    description: 'Direct browser-delivered planning presentation satisfying all UCS503 requirements.',
+    description: 'Direct browser-delivered planning presentation satisfying all system requirements.',
     file_name: 'Pharmacon_Commitment_Pitch.pptx',
     file_url: './presentations/Pharmacon_Commitment_Pitch.pptx',
   },
@@ -35,13 +35,13 @@ const DEFAULT_DELIVERABLES = [
     version_id: 'v2.0.0',
     date: '2026-09-10',
     status: 'published',
-    description: 'Updated planning deliverable incorporating instructor feedback and revised architecture.',
+    description: 'Updated planning deliverable incorporating clinical advisory feedback and revised architecture.',
     file_name: 'Merged_Presentation_from_Claude.pptx',
     file_url: './presentations/Merged_Presentation_from_Claude.pptx',
   },
   {
     id: 'D-003',
-    title: 'UCS503 Software Comparison Grid',
+    title: 'Software Comparison Grid',
     type: 'Specification Table',
     version_id: 'v1.0.0',
     date: '2026-08-25',
@@ -114,10 +114,10 @@ export default function DeliverablesPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-gold bg-accent-goldLight text-brand-dark text-xs font-black uppercase mb-2">
             <FileText className="w-3.5 h-3.5 text-brand-red" />
-            Academic Coursework
+            Platform Documentation
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-display text-brand-dark">
-            UCS503 Project Deliverables
+            System Deliverables &amp; Specifications
           </h1>
           <p className="text-sm text-brand-dark/75 mt-1">
             Official project documents, pitch decks, specifications, and architecture deliverables.

@@ -21,7 +21,7 @@ const DEFAULT_DECKS = [
   {
     id: 'DECK-001',
     title: 'Pharmacon Commitment Pitch (V1)',
-    description: 'Revised capstone scope, doctor-adaptive handwriting OCR strategy, formulary constraints, roadmap, and milestone approvals.',
+    description: 'Revised project scope, doctor-adaptive handwriting OCR strategy, formulary constraints, roadmap, and milestone approvals.',
     file_path: '/presentations/Pharmacon_Commitment_Pitch.pptx',
     file_url: './presentations/Pharmacon_Commitment_Pitch.pptx',
     web_viewer_url: '/presentation/v1',
@@ -259,7 +259,7 @@ export default function PresentationsPage() {
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. Mid-Semester Demonstration Pitch"
+              placeholder="e.g. Phase 2 Architecture & Demonstration Pitch"
               className="w-full px-3 py-2 rounded-xl border-2 border-brand-dark bg-canvas text-xs font-medium"
             />
           </div>

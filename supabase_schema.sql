@@ -144,7 +144,7 @@ create table if not exists public.versions (
 );
 
 -- ------------------------------------------------------------------------------
--- 9. DELIVERABLES (Course Artifacts, Documents, Reports)
+-- 9. DELIVERABLES (Platform Artifacts, Documents, Reports)
 -- ------------------------------------------------------------------------------
 create table if not exists public.deliverables (
   id text primary key,
@@ -434,8 +434,8 @@ on conflict (id) do update set
 
 insert into public.deliverables (id, title, type, version_id, date, status, description, file_name, file_url)
 values
-  ('deliv-v1-deck', 'Planning Presentation v1 (Interactive Web Deck)', 'Interactive Presentation', 'v1.0.0', '2026-08-25', 'published', 'Direct browser-delivered planning presentation satisfying all UCS503 requirements.', 'Pharmacon_Commitment_Pitch.pptx', '/presentations/Pharmacon_Commitment_Pitch.pptx'),
-  ('deliv-v2-deck', 'Planning Presentation v2 (Scope & Feedback Updates)', 'Interactive Presentation', 'v2.0.0', '2026-09-10', 'published', 'Updated planning deliverable incorporating instructor feedback and revised architecture.', 'Merged_Presentation_from_Claude.pptx', '/presentations/Merged_Presentation_from_Claude.pptx')
+  ('deliv-v1-deck', 'Planning Presentation v1 (Interactive Web Deck)', 'Interactive Presentation', 'v1.0.0', '2026-08-25', 'published', 'Direct browser-delivered planning presentation satisfying all clinical engineering requirements.', 'Pharmacon_Commitment_Pitch.pptx', '/presentations/Pharmacon_Commitment_Pitch.pptx'),
+  ('deliv-v2-deck', 'Planning Presentation v2 (Scope & Feedback Updates)', 'Interactive Presentation', 'v2.0.0', '2026-09-10', 'published', 'Updated planning deliverable incorporating clinical advisory feedback and revised architecture.', 'Merged_Presentation_from_Claude.pptx', '/presentations/Merged_Presentation_from_Claude.pptx')
 on conflict (id) do update set
   title = excluded.title,
   type = excluded.type,

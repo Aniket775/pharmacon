@@ -83,7 +83,7 @@ export default function HomePage() {
     },
     {
       title: 'Role-Based Dashboards',
-      desc: 'Dedicated tailored interfaces for Doctors, Clinic Staff, Pharmacists, Patients, and Course Instructors with Row Level Security.',
+      desc: 'Dedicated tailored interfaces for Doctors, Clinic Staff, Pharmacists, Patients, and Clinical Auditors with Row Level Security.',
       icon: Users,
       tag: 'Multi-Role Access',
       link: '/dashboard/admin',
@@ -99,7 +99,7 @@ export default function HomePage() {
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-brand-dark bg-accent-gold text-brand-dark text-xs font-black uppercase tracking-wider shadow-tactile-sm">
               <Sparkles className="w-4 h-4 text-brand-red" />
-              UCS503 Capstone Project
+              Healthcare Workflow Platform
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-display text-brand-dark leading-[1.08] tracking-tight">

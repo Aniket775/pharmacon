@@ -42,9 +42,9 @@ export const DEMO_ROLES = [
   },
   {
     role: 'instructor',
-    name: 'Prof. Evaluation / Reviewer',
-    email: 'instructor@pharmacon.local',
-    description: 'Academic evaluation, project milestone reviews & audit trail oversight',
+    name: 'Lead Clinical Auditor',
+    email: 'auditor@pharmacon.local',
+    description: 'Clinical evaluation, system milestone reviews & audit trail oversight',
     dashboardPath: '/dashboard/admin',
   },
 ];

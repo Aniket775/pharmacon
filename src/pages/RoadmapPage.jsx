@@ -9,7 +9,7 @@ export default function RoadmapPage() {
       period: 'August 2026',
       status: 'completed',
       deliverables: [
-        'UCS503 Planning Presentation v1 and Pitch Deck (.pptx).',
+        'Planning Presentation v1 and Pitch Deck (.pptx).',
         'Clinical stakeholder pain point analysis & risk register.',
         'Initial prototype workflow wireframes and formulary schema design.',
       ],
@@ -39,13 +39,13 @@ export default function RoadmapPage() {
     },
     {
       phase: 'Phase 4',
-      title: 'Ablation Study, Clinical Validation & Final Capstone',
+      title: 'Ablation Study, Clinical Validation & Final Release',
       period: 'December 2026',
       status: 'future',
       deliverables: [
         'Execution of 4-stage ablation evaluation (Generic vs Adapted vs Constrained).',
         'Empirical measurement of CER, WER, and exact medicine accuracy metrics.',
-        'Final UCS503 project defense, documentation, and live hospital deployment demo.',
+        'Final system evaluation defense, documentation, and live hospital deployment demo.',
       ],
     },
   ];

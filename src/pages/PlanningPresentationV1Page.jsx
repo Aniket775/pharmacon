@@ -34,7 +34,7 @@ export default function PlanningPresentationV1Page() {
         <div className="space-y-6 text-center max-w-2xl mx-auto py-8">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-2 border-brand-dark bg-accent-gold text-brand-dark text-xs font-black uppercase shadow-tactile-sm">
             <Sparkles className="w-4 h-4 text-brand-red" />
-            UCS503 Software Engineering Capstone
+            Clinical Software Engineering Architecture
           </div>
           <h2 className="text-4xl sm:text-5xl font-black font-display text-brand-dark leading-tight">
             Connecting Handwritten Prescriptions to Connected Care
@@ -252,7 +252,7 @@ export default function PlanningPresentationV1Page() {
 
             {/* Slide Footer */}
             <div className="flex items-center justify-between pt-6 border-t-2 border-brand-dark/10 text-xs text-brand-dark/50 font-bold">
-              <span>Pharmacon • UCS503 Software Engineering</span>
+              <span>Pharmacon • Clinical Workflow Engine</span>
               <span>Team Pharmacon</span>
             </div>
           </div>

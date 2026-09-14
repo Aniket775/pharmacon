@@ -20,7 +20,7 @@ export default function ProjectPage() {
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
         <span className="text-xs font-black uppercase tracking-widest text-brand-red bg-accent-goldLight px-3 py-1 rounded-full border border-accent-gold">
-          UCS503 Capstone Direction
+          Platform Architecture &amp; Vision
         </span>
         <h1 className="text-3xl sm:text-5xl font-black font-display text-brand-dark leading-tight">
           Project Vision &amp; Objectives
@@ -32,7 +32,7 @@ export default function ProjectPage() {
 
       {/* Demo Banner */}
       <BannerDemo
-        title="UCS503 CAPSTONE SPECIFICATION"
+        title="ENTERPRISE HEALTHCARE WORKFLOW ENGINE"
         message="This rebuilt web application provides the complete end-to-end user workflow with Supabase PostgreSQL persistence and Role Level Security."
       />
 

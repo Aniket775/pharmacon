@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { PrescriptionsRepository } from '../../lib/dataStore';
 import {
   UserCheck,
   FileCheck2,
@@ -14,23 +15,35 @@ import StatusBadge from '../../components/StatusBadge';
 
 export default function ClinicDashboard() {
   const { profile } = useAuth();
+  const [pendingTasks, setPendingTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingTasks = [
-    {
-      id: 'RX-2024-0002',
-      patient: 'Meera Patel',
-      doctor: 'Dr. R. Gupta',
-      flaggedField: 'Frequency notation (74% confidence)',
-      urgency: 'Medium',
-    },
-    {
-      id: 'RX-2024-0001',
-      patient: 'Rahul Kumar',
-      doctor: 'Dr. A. Sharma',
-      flaggedField: 'Instructions (88% confidence)',
-      urgency: 'Low',
-    },
-  ];
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const allRx = await PrescriptionsRepository.getAll();
+        const flagged = allRx.filter((r) => r.status !== 'confirmed');
+        const tasks = flagged.map((rx) => {
+          const flaggedField =
+            rx.fields?.find((f) => f.needs_verification || f.needsVerification)?.label ||
+            'Medicine / dosage confidence';
+          return {
+            id: rx.id,
+            patient: rx.patient_name || 'Patient',
+            doctor: rx.doctor_name || 'Attending Physician',
+            flaggedField: `${flaggedField} (verification required)`,
+            urgency: 'Medium',
+          };
+        });
+        setPendingTasks(tasks);
+      } catch (err) {
+        console.warn('ClinicDashboard load error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTasks();
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">

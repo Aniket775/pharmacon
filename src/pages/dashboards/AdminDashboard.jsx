@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { SystemStatsRepository } from '../../lib/dataStore';
 import { useAuth } from '../../context/AuthContext';
 import {
   Users,
@@ -20,28 +21,17 @@ export default function AdminDashboard() {
     teamCount: 4,
     inventoryCount: 8,
     prescriptionCount: 2,
-    auditCount: 5,
+    auditCount: 2,
     lowStockCount: 2,
   });
 
   useEffect(() => {
     async function loadStats() {
-      if (!isSupabaseConfigured()) return;
       try {
-        const { count: team } = await supabase.from('team_members').select('*', { count: 'exact', head: true });
-        const { count: inv } = await supabase.from('inventory_items').select('*', { count: 'exact', head: true });
-        const { count: rx } = await supabase.from('prescriptions').select('*', { count: 'exact', head: true });
-        const { count: audit } = await supabase.from('audit_events').select('*', { count: 'exact', head: true });
-
-        setStats((prev) => ({
-          ...prev,
-          teamCount: team ?? prev.teamCount,
-          inventoryCount: inv ?? prev.inventoryCount,
-          prescriptionCount: rx ?? prev.prescriptionCount,
-          auditCount: audit ?? prev.auditCount,
-        }));
+        const liveStats = await SystemStatsRepository.getStats();
+        setStats(liveStats);
       } catch (e) {
-        console.warn('Admin stats note:', e);
+        console.warn('Admin stats load error:', e);
       }
     }
     loadStats();

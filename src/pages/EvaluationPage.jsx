@@ -117,7 +117,7 @@ export default function EvaluationPage() {
 
       {/* Mandatory Honest Notice */}
       <BannerDemo
-        title="ACADEMIC HONESTY: NO FABRICATED BENCHMARK DATA"
+        title="SYSTEM INTEGRITY: NO FABRICATED BENCHMARK DATA"
         message="The ML model is currently in training/planning. All performance columns below are explicitly marked 'Not measured yet'. We do not invent synthetic benchmark results."
       />
 

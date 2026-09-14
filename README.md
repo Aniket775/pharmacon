@@ -1,7 +1,7 @@
 # Pharmacon (v2.0 Clean Rebuild)
 
 > **Doctor-Adaptive Clinical Handwriting Digitization & Real-Time Formulary Synchronization Engine**  
-> UCS503 Software Engineering Capstone Project
+> Clinical Healthcare Workflow Platform
 
 ---
 
@@ -12,7 +12,7 @@
 2. **AI-Assisted Structured Extraction**: OCR parsing of medicine names, strengths, dosage forms, routes, frequencies, and durations.
 3. **Mandatory Human-in-the-Loop Review**: Safety thresholding (<90% confidence flagged with "Needs Verification").
 4. **Formulary Inventory Matching**: Direct mapping to hospital pharmacy stock and SKUs without autonomous drug substitutions.
-5. **Multi-Role Healthcare Dashboards**: Tailored workflows for Doctors, Clinic Staff, Pharmacists, Patients, and Course Instructors.
+5. **Multi-Role Healthcare Dashboards**: Tailored workflows for Doctors, Clinic Staff, Pharmacists, Patients, and Clinical Auditors.
 6. **Continuous Correction Learning & Immutable Audits**: Replay buffer recording verified corrections and full PostgreSQL audit logs.
 
 ---
@@ -60,14 +60,14 @@ The database schema is defined in [`supabase_schema.sql`](./supabase_schema.sql)
 - `refill_requests`: Patient refill requests with pharmacy review status (`pending`, `approved`, `rejected`, `contacted`).
 - `audit_events`: Comprehensive audit log tracking every data modification and confirmation.
 - `versions`: Deliverable changelog and release history.
-- `deliverables`: Academic project artifacts, reports, and downloadable files.
+- `deliverables`: Platform architecture specifications, engineering reports, and downloadable artifacts.
 - `presentation_decks`: PowerPoint presentation decks and metadata.
 
 ### Storage Buckets:
 - `team-assets`: Profile pictures uploaded by admins.
 - `prescriptions`: Scanned and uploaded prescription images.
 - `presentations`: Official PowerPoint pitch decks (`.pptx`).
-- `deliverables`: Coursework documents and specification PDFs.
+- `deliverables`: System specification documents and technical PDF deliverables.
 
 ---
 

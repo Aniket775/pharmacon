@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { RefillsRepository } from '../../lib/dataStore';
 import { useAuth } from '../../context/AuthContext';
 import { logAuditEvent } from '../../lib/auditLogger';
 import {
@@ -35,20 +36,10 @@ const DEFAULT_PATIENT_MEDS = [
   },
 ];
 
-const DEFAULT_REFILLS = [
-  {
-    id: 'RF-001',
-    medicine: 'Amoxicillin 500 mg',
-    strength: '500 mg',
-    status: 'pending',
-    created_at: '2024-11-20',
-  },
-];
-
 export default function PatientDashboard() {
   const { profile, user, role } = useAuth();
   const [meds, setMeds] = useState(DEFAULT_PATIENT_MEDS);
-  const [refills, setRefills] = useState(DEFAULT_REFILLS);
+  const [refills, setRefills] = useState([]);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -59,16 +50,8 @@ export default function PatientDashboard() {
 
   const fetchPatientData = async () => {
     try {
-      if (!isSupabaseConfigured()) return;
-
-      const { data: refData } = await supabase
-        .from('refill_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (refData && refData.length > 0) {
-        setRefills(refData);
-      }
+      const data = await RefillsRepository.getAll();
+      setRefills(data);
     } catch (e) {
       console.warn('Patient fetch error:', e);
     }
@@ -82,21 +65,14 @@ export default function PatientDashboard() {
     e.preventDefault();
 
     try {
-      const newRefill = {
-        id: 'RF-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+      const newRefill = await RefillsRepository.addRequest({
         prescription_id: 'RX-2024-0001',
         patient_id: profile?.id || 'PT-1001',
         patient_name: profile?.name || 'Rahul Kumar',
         medicine: refillForm.medicine,
         strength: refillForm.strength,
         status: 'pending',
-        created_at: new Date().toISOString(),
-      };
-
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase.from('refill_requests').insert([newRefill]);
-        if (error) throw error;
-      }
+      });
 
       setRefills((prev) => [newRefill, ...prev]);
 
