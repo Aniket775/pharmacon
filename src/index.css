@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FFF8E8;
+    color: #351027;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  /* Tactile offset button and card effects */
+  .btn-tactile-pink {
+    background-color: #FF6F89;
+    color: #ffffff;
+    border: 2px solid #351027;
+    box-shadow: 0 4px 0 0 #351027;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-tactile-pink:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 0 6px 0 0 #351027;
+  }
+  .btn-tactile-pink:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 1px 0 0 #351027;
+  }
+
+  .btn-tactile-red {
+    background-color: #F52F4F;
+    color: #ffffff;
+    border: 2px solid #351027;
+    box-shadow: 0 4px 0 0 #351027;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-tactile-red:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 0 6px 0 0 #351027;
+  }
+  .btn-tactile-red:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 1px 0 0 #351027;
+  }
+
+  .btn-tactile-gold {
+    background-color: #FECB66;
+    color: #351027;
+    border: 2px solid #351027;
+    box-shadow: 0 4px 0 0 #351027;
+    font-weight: 700;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-tactile-gold:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 0 6px 0 0 #351027;
+  }
+  .btn-tactile-gold:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 1px 0 0 #351027;
+  }
+
+  .btn-tactile-white {
+    background-color: #FFFFFF;
+    color: #351027;
+    border: 2px solid #351027;
+    box-shadow: 0 4px 0 0 #351027;
+    font-weight: 600;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-tactile-white:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 0 6px 0 0 #351027;
+  }
+  .btn-tactile-white:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 1px 0 0 #351027;
+  }
+
+  .card-tactile {
+    background-color: #FFFFFF;
+    border: 2px solid #351027;
+    box-shadow: 0 6px 0 0 #351027;
+    border-radius: 1.25rem;
+  }
+
+  .card-tactile-sm {
+    background-color: #FFFFFF;
+    border: 2px solid #351027;
+    box-shadow: 0 3px 0 0 #351027;
+    border-radius: 1rem;
+  }
+
+  .card-tactile-cream {
+    background-color: #FFF8E8;
+    border: 2px solid #351027;
+    box-shadow: 0 6px 0 0 #351027;
+    border-radius: 1.25rem;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FFF8E8;
+}
+::-webkit-scrollbar-thumb {
+  background: #35102733;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #35102766;
+}
