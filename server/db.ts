@@ -260,28 +260,77 @@ function seedOrUpdateAdminAccounts(db: Database.Database) {
 
 function seedWorkflowData(db: Database.Database) {
   const count = db.prepare('SELECT COUNT(*) as count FROM inventory_items').get() as { count: number };
-  if (count.count > 0) return;
+  if (count.count === 0) {
+    const inventory = db.prepare('INSERT INTO inventory_items (id, medicine, strength, dosage_form, sku, pack_size, stock, reorder_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    [
+      ['INV-001', 'Amoxicillin', '500 mg', 'Tablet', 'AMX-500-TAB', '10 tablets', 124, 30],
+      ['INV-002', 'Paracetamol', '650 mg', 'Tablet', 'PCM-650-TAB', '15 tablets', 256, 50],
+      ['INV-003', 'Metformin', '500 mg', 'Tablet', 'MET-500-TAB', '10 tablets', 18, 25],
+      ['INV-004', 'Azithromycin', '250 mg', 'Tablet', 'AZT-250-TAB', '6 tablets', 0, 20],
+      ['INV-005', 'Omeprazole', '20 mg', 'Capsule', 'OMP-020-CAP', '10 capsules', 89, 25],
+    ].forEach((row) => inventory.run(...row));
+  }
 
-  const inventory = db.prepare('INSERT INTO inventory_items (id, medicine, strength, dosage_form, sku, pack_size, stock, reorder_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-  [
-    ['INV-001', 'Amoxicillin', '500 mg', 'Tablet', 'AMX-500-TAB', '10 tablets', 124, 30],
-    ['INV-002', 'Paracetamol', '650 mg', 'Tablet', 'PCM-650-TAB', '15 tablets', 256, 50],
-    ['INV-003', 'Metformin', '500 mg', 'Tablet', 'MET-500-TAB', '10 tablets', 18, 25],
-    ['INV-004', 'Azithromycin', '250 mg', 'Tablet', 'AZT-250-TAB', '6 tablets', 0, 20],
-    ['INV-005', 'Omeprazole', '20 mg', 'Capsule', 'OMP-020-CAP', '10 capsules', 89, 25],
-  ].forEach((row) => inventory.run(...row));
+  const insertRx = db.prepare('INSERT OR IGNORE INTO prescriptions (id, patient_id, patient_name, doctor_name, status) VALUES (?, ?, ?, ?, ?)');
+  const insertField = db.prepare('INSERT INTO prescription_fields (prescription_id, label, value, confidence, needs_verification) VALUES (?, ?, ?, ?, ?)');
 
-  db.prepare('INSERT INTO prescriptions (id, patient_id, patient_name, doctor_name, status) VALUES (?, ?, ?, ?, ?)')
-    .run('RX-2024-0001', 'PT-1001', 'Rahul Kumar', 'Dr. A. Sharma', 'confirmed');
-  const field = db.prepare('INSERT INTO prescription_fields (prescription_id, label, value, confidence, needs_verification) VALUES (?, ?, ?, ?, ?)');
-  [
-    ['Medicine', 'Amoxicillin', 94, 0], ['Strength', '500 mg', 97, 0], ['Dosage Form', 'Tablet', 96, 0],
-    ['Frequency', '1-0-1', 86, 1], ['Route', 'Oral', 92, 0], ['Duration', '5 days', 91, 0], ['Instructions', 'After food', 88, 1],
-  ].forEach((row) => field.run('RX-2024-0001', ...row));
-  db.prepare('INSERT INTO refill_requests (id, prescription_id, patient_id, patient_name, medicine, strength, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run('RF-001', 'RX-2024-0001', 'PT-1001', 'Rahul Kumar', 'Amoxicillin', '500 mg', 'pending');
-  db.prepare('INSERT INTO audit_events (id, actor, role, action, entity, entity_id, status, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run('AE-001', 'System', 'System', 'Seeded persistent demo workflow', 'Prescription', 'RX-2024-0001', 'info', 'Initial demo data');
+  // Seed sample prescriptions if not present
+  const hasSample = db.prepare("SELECT id FROM prescriptions WHERE id = 'RX-2024-0001'").get();
+  if (!hasSample) {
+    insertRx.run('RX-2024-0001', 'PT-1001', 'Rahul Kumar', 'Dr. A. Sharma', 'confirmed');
+    [
+      ['Medicine', 'Amoxicillin', 94, 0], ['Strength', '500 mg', 97, 0], ['Dosage Form', 'Tablet', 96, 0],
+      ['Frequency', '1-0-1', 86, 1], ['Route', 'Oral', 92, 0], ['Duration', '5 days', 91, 0], ['Instructions', 'After food', 88, 1],
+    ].forEach((row) => insertField.run('RX-2024-0001', ...row));
+  }
+
+  const hasReviewQueue = db.prepare("SELECT id FROM prescriptions WHERE id = 'RX-2026-0091'").get();
+  if (!hasReviewQueue) {
+    insertRx.run('RX-2026-0091', 'PT-1002', 'Sunil Reddy', 'Dr. A. Sharma', 'draft');
+    [
+      ['Medicine', 'Amoxicillin 500mg', 98, 0],
+      ['Frequency', '1-0-1 (ambiguous)', 84, 1],
+      ['Duration', '5 days', 94, 0],
+    ].forEach((row) => insertField.run('RX-2026-0091', ...row));
+
+    insertRx.run('RX-2026-0092', 'PT-1003', 'Kavita Nair', 'Dr. S. Verma', 'draft');
+    [
+      ['Medicine', 'Metformin 500mg', 96, 0],
+      ['Dosage Form', 'Tab vs Cap', 81, 1],
+      ['Instructions', 'Before meals', 86, 1],
+    ].forEach((row) => insertField.run('RX-2026-0092', ...row));
+
+    insertRx.run('RX-2026-0081', 'PT-1001', 'Rahul Kumar', 'Dr. A. Sharma', 'confirmed');
+    [
+      ['Medicine', 'Amoxicillin', 98, 0],
+      ['Strength', '500 mg', 99, 0],
+      ['Dosage Form', 'Tablet', 97, 0],
+      ['Frequency', '1-0-1 (Morning & Night)', 96, 0],
+      ['Duration', '5 days', 95, 0],
+      ['Instructions', 'After food with water', 94, 0],
+    ].forEach((row) => insertField.run('RX-2026-0081', ...row));
+
+    insertRx.run('RX-2026-0082', 'PT-1004', 'Meera Patel', 'Dr. A. Sharma', 'confirmed');
+    [
+      ['Medicine', 'Metformin', 96, 0],
+      ['Strength', '500 mg', 98, 0],
+      ['Dosage Form', 'Tablet', 99, 0],
+      ['Frequency', '1-0-0 (Morning with breakfast)', 92, 0],
+      ['Duration', '30 days', 97, 0],
+    ].forEach((row) => insertField.run('RX-2026-0082', ...row));
+  }
+
+  const refillCount = db.prepare('SELECT COUNT(*) as count FROM refill_requests').get() as { count: number };
+  if (refillCount.count === 0) {
+    db.prepare('INSERT INTO refill_requests (id, prescription_id, patient_id, patient_name, medicine, strength, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run('RF-001', 'RX-2024-0001', 'PT-1001', 'Rahul Kumar', 'Amoxicillin', '500 mg', 'pending');
+  }
+
+  const auditCount = db.prepare('SELECT COUNT(*) as count FROM audit_events').get() as { count: number };
+  if (auditCount.count === 0) {
+    db.prepare('INSERT INTO audit_events (id, actor, role, action, entity, entity_id, status, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run('AE-001', 'System', 'System', 'Seeded persistent demo workflow', 'Prescription', 'RX-2024-0001', 'info', 'Initial demo data');
+  }
 }
 
 function seedPageContent(db: Database.Database) {

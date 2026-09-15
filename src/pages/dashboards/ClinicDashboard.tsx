@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Upload, ClipboardList, Users, AlertTriangle, CheckCircle2,
   Eye, Plus, FileText, Check, X, Stethoscope, Search, Sparkles
 } from 'lucide-react';
 import MedicinePillMascot from '../../components/MedicinePillMascot';
 import { Link } from 'react-router-dom';
+import { api } from '../../api/client';
 
 interface ReviewQueueItem {
   id: string;
@@ -16,36 +17,52 @@ interface ReviewQueueItem {
 }
 
 export default function ClinicDashboard() {
-  const [queue, setQueue] = useState<ReviewQueueItem[]>([
-    {
-      id: 'RX-2026-0091',
-      patient: 'Sunil Reddy',
-      doctor: 'Dr. A. Sharma',
-      medicine: 'Amoxicillin 500mg',
-      time: 'Just now',
-      flaggedFields: [
-        { field: 'Frequency', detectedValue: '1-0-1 (ambiguous)', confidence: 84, resolved: false },
-        { field: 'Duration', detectedValue: '5 days', confidence: 94, resolved: true },
-      ],
-    },
-    {
-      id: 'RX-2026-0092',
-      patient: 'Kavita Nair',
-      doctor: 'Dr. S. Verma',
-      medicine: 'Metformin 500mg',
-      time: '8 mins ago',
-      flaggedFields: [
-        { field: 'Dosage Form', detectedValue: 'Tab vs Cap', confidence: 81, resolved: false },
-        { field: 'Instructions', detectedValue: 'Before meals', confidence: 86, resolved: false },
-      ],
-    },
-  ]);
-
+  const [queue, setQueue] = useState<ReviewQueueItem[]>([]);
   const [activeReview, setActiveReview] = useState<ReviewQueueItem | null>(null);
   const [notification, setNotification] = useState('');
 
-  const handleResolveField = (fieldIdx: number) => {
+  const loadQueue = () => {
+    api.get<{ prescriptions: any[] }>('/prescriptions')
+      .then((data) => {
+        if (data.prescriptions) {
+          // Find draft prescriptions or those needing verification
+          const drafts = data.prescriptions.filter((p) => p.status === 'draft');
+          const formatted: ReviewQueueItem[] = drafts.map((p) => {
+            const medField = p.fields.find((f: any) => f.label.toLowerCase().includes('medicine'));
+            return {
+              id: p.id,
+              patient: p.patient_name,
+              doctor: p.doctor_name,
+              medicine: medField?.value || 'Prescription',
+              time: p.created_at || 'Recent',
+              flaggedFields: p.fields.map((f: any) => ({
+                field: f.label,
+                detectedValue: f.value,
+                confidence: f.confidence,
+                resolved: !f.needs_verification,
+              })),
+            };
+          });
+          setQueue(formatted);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadQueue();
+  }, []);
+
+  const handleResolveField = async (fieldIdx: number) => {
     if (!activeReview) return;
+    const targetField = activeReview.flaggedFields[fieldIdx];
+    try {
+      await api.put(`/prescriptions/${activeReview.id}/resolve-field`, {
+        fieldLabel: targetField.field,
+        resolvedValue: targetField.detectedValue,
+      });
+    } catch (e) {}
+
     const updatedFlags = activeReview.flaggedFields.map((f, i) =>
       i === fieldIdx ? { ...f, resolved: true, confidence: 99 } : f
     );
@@ -54,8 +71,12 @@ export default function ClinicDashboard() {
     setQueue((prev) => prev.map((item) => (item.id === activeReview.id ? updatedReview : item)));
   };
 
-  const handleCompleteVerification = () => {
+  const handleCompleteVerification = async () => {
     if (!activeReview) return;
+    try {
+      await api.put(`/prescriptions/${activeReview.id}/status`, { status: 'confirmed' });
+    } catch (e) {}
+
     setQueue((prev) => prev.filter((item) => item.id !== activeReview.id));
     setNotification(`Prescription ${activeReview.id} verified and released to Pharmacy queue!`);
     setActiveReview(null);

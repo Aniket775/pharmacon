@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: pharmacon-backend
+    name: pharmacon
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm run server
     envVars:
       - key: PORT

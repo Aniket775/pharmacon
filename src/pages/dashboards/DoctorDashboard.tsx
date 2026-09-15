@@ -79,10 +79,12 @@ export default function DoctorDashboard() {
       } catch (e) {}
     }
 
-    api.get<{ prescriptions: PrescriptionItem[] }>('/prescriptions/PT-1001')
+    api.get<{ prescriptions: PrescriptionItem[] }>('/prescriptions')
       .then((data) => {
         if (data.prescriptions && data.prescriptions.length > 0) {
-          setPrescriptions((prev) => [...data.prescriptions, ...prev.filter(p => !data.prescriptions.some(dp => dp.id === p.id))]);
+          const confirmed = data.prescriptions.filter((p) => p.status === 'confirmed');
+          setPrescriptions(confirmed);
+          localStorage.setItem('pharmacon_doctor_prescriptions', JSON.stringify(confirmed));
         }
       })
       .catch(() => {});
@@ -100,7 +102,7 @@ export default function DoctorDashboard() {
     setInstructions('Twice daily after food');
   };
 
-  const handleCreatePrescription = (e: React.FormEvent) => {
+  const handleCreatePrescription = async (e: React.FormEvent) => {
     e.preventDefault();
     const newRx: PrescriptionItem = {
       id: `RX-${Date.now().toString(36).toUpperCase()}`,
@@ -117,6 +119,12 @@ export default function DoctorDashboard() {
         { label: 'Instructions', value: instructions, confidence: 94, needs_verification: 0 },
       ],
     };
+
+    try {
+      await api.post('/prescriptions', newRx);
+    } catch (err) {
+      console.warn('Backend sync warning, stored locally:', err);
+    }
 
     const updated = [newRx, ...prescriptions];
     setPrescriptions(updated);

@@ -106,7 +106,7 @@ export default function PharmacyDashboard() {
     setTimeout(() => setNotification(''), 4000);
   };
 
-  const adjustStock = (id: string, delta: number) => {
+  const adjustStock = async (id: string, delta: number) => {
     setInventory((prev) =>
       prev.map((item) => {
         if (item.id === id) {
@@ -117,9 +117,15 @@ export default function PharmacyDashboard() {
         return item;
       })
     );
+
+    try {
+      await api.put(`/inventory/${id}/stock`, { delta });
+    } catch (e) {
+      console.warn('Failed to persist stock update to server:', e);
+    }
   };
 
-  const handleAddMed = (e: React.FormEvent) => {
+  const handleAddMed = async (e: React.FormEvent) => {
     e.preventDefault();
     const item: InventoryItem = {
       id: `INV-${Date.now().toString(36).toUpperCase()}`,
@@ -133,7 +139,14 @@ export default function PharmacyDashboard() {
       status: Number(newMed.stock) <= Number(newMed.reorderLevel) ? 'low-stock' : 'in-stock',
     };
 
-    setInventory([item, ...inventory]);
+    try {
+      const res = await api.post<InventoryItem>('/inventory', item);
+      const savedItem = res?.id ? res : item;
+      setInventory([savedItem, ...inventory]);
+    } catch (e) {
+      setInventory([item, ...inventory]);
+    }
+
     setAddingMed(false);
     setNewMed({ medicine: '', strength: '500 mg', dosageForm: 'Tablet', sku: '', packSize: '100 tabs', stock: 50, reorderLevel: 15 });
     setNotification(`Added ${item.medicine} to Formulary Inventory!`);

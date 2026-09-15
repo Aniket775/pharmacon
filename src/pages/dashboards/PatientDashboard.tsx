@@ -20,10 +20,39 @@ export default function PatientDashboard() {
     { id: 3, period: 'Night (8:00 PM)', med: 'Amoxicillin 500mg', instructions: '1 Capsule after dinner', taken: false, icon: Moon, color: '#F3E8FC' },
   ]);
 
+  useEffect(() => {
+    const savedDoses = localStorage.getItem('pharmacon_patient_doses');
+    if (savedDoses) {
+      try {
+        const parsed = JSON.parse(savedDoses);
+        if (Array.isArray(parsed)) {
+          setDoses((prev) =>
+            prev.map((d) => {
+              const match = parsed.find((p: any) => p.id === d.id);
+              return match !== undefined ? { ...d, taken: match.taken } : d;
+            })
+          );
+        }
+      } catch (e) {}
+    }
+
+    api.get<{ refills: any[] }>('/refills')
+      .then((data) => {
+        if (data.refills && data.refills.length > 0) {
+          const latest = data.refills[0];
+          setRefillId(latest.id || latest.prescriptionId);
+          setRefillStatus(latest.status === 'approved' ? 'approved' : 'pending');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const toggleDose = (id: number) => {
-    setDoses((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, taken: !d.taken } : d))
-    );
+    setDoses((prev) => {
+      const updated = prev.map((d) => (d.id === id ? { ...d, taken: !d.taken } : d));
+      localStorage.setItem('pharmacon_patient_doses', JSON.stringify(updated.map((d) => ({ id: d.id, taken: d.taken }))));
+      return updated;
+    });
   };
 
   const takenCount = doses.filter((d) => d.taken).length;

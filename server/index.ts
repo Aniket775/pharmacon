@@ -17,26 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const preferredPort = parseInt(process.env.PORT || '4174', 10);
-
-const getAvailablePort = (port: number): number => {
-  let candidate = port;
-  while (true) {
-    try {
-      const testServer = app.listen(candidate);
-      testServer.close();
-      return candidate;
-    } catch (error: any) {
-      if (error?.code === 'EADDRINUSE') {
-        candidate += 1;
-        continue;
-      }
-      throw error;
-    }
-  }
-};
-
-const PORT = getAvailablePort(preferredPort);
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4174;
 
 // Ensure uploads directory exists
 const uploadsDir = join(process.env.DATA_DIR || __dirname, 'uploads');
@@ -46,7 +27,7 @@ if (!existsSync(uploadsDir)) {
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:4174', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:4174', 'http://localhost:5173', 'http://localhost:5175'],
   credentials: true,
 }));
 app.use(express.json());
@@ -89,7 +70,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Pharmacon API server running at http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Pharmacon server running at http://0.0.0.0:${PORT}`);
   console.log(`📁 File uploads stored in: ${uploadsDir}`);
 });
